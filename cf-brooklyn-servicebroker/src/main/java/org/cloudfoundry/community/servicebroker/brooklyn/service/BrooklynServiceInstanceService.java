@@ -1,9 +1,11 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.CatalogConfig;
+import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
@@ -12,9 +14,8 @@ import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
 import org.cloudfoundry.community.servicebroker.service.ServiceInstanceService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -28,7 +29,6 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 	public BrooklynServiceInstanceService(RestTemplate restTemplate) {
 		this.restTemplate = restTemplate;
 	}
-	
 
 	@Override
 	public ServiceInstance createServiceInstance(ServiceDefinition service,
@@ -43,13 +43,14 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		}
 		instance = new ServiceInstance(serviceInstanceId, service.getId(), planId, organizationGuid, spaceGuid, null);
 		repository.put(serviceInstanceId, instance);
-		// TODO init service
+
+		ApplicationSpec applicationSpec = new ApplicationSpec();
+		applicationSpec.setLocation("localhost");
+		applicationSpec.setServices(Arrays.asList(service.getId()));
 		
-		String json = restTemplate.getForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/catalog/applications/" + service.getId(), String.class);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> request= new HttpEntity<String>(json, headers);
-        restTemplate.postForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications", request, String.class);
+		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+		restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+        restTemplate.postForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications", applicationSpec, String.class);
         
 		return instance;
 	}
@@ -74,6 +75,9 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		if (instance != null) {
 			System.out.println("Deleting service");
 			repository.remove(id);
+			// TODO find out the brooklyn identifiers to put into the following POST request.
+			restTemplate.postForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications/{application}/entities/{entity}/effectors/{effector}", 
+					null, String.class);
 		}
 		return instance;
 	}
