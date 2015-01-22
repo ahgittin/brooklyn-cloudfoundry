@@ -1,6 +1,8 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,16 +24,15 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class BrooklynServiceInstanceService implements ServiceInstanceService {
-	
-	@Autowired
-	private BrooklynConfig config;
 
 	private Map<String, ServiceInstance> repository = new ConcurrentHashMap<String, ServiceInstance>();
 	private RestTemplate restTemplate;
+	private BrooklynConfig config;
 
 	@Autowired
-	public BrooklynServiceInstanceService(RestTemplate restTemplate) {
+	public BrooklynServiceInstanceService(RestTemplate restTemplate, BrooklynConfig config) {
 		this.restTemplate = restTemplate;
+		this.config = config;
 	}
 
 	@Override
@@ -68,6 +69,10 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public ServiceInstance getServiceInstance(String id) {
 		return repository.get(id);
+	}
+	
+	protected List<ServiceInstance> getAllServiceInstances(){
+		return new ArrayList<ServiceInstance>(repository.values());
 	}
 
 	@Override
