@@ -12,6 +12,7 @@ import org.cloudfoundry.community.servicebroker.model.DashboardClient;
 import org.cloudfoundry.community.servicebroker.model.Plan;
 import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -20,16 +21,17 @@ import org.springframework.web.client.RestTemplate;
 public class CatalogConfig {
 
 	// TODO get this from properties
-	public static String BROOKLYN_BASE_URL = "http://127.0.0.1:8081";
-
+	//public static String BROOKLYN_BASE_URL = "http://127.0.0.1:8081";
+	@Autowired
+	private BrooklynConfig config;
+	
 	@Autowired
 	private RestTemplate restTemplate;
 
 	@Bean
 	public Catalog catalog() {
 		// get catalog info from REST call
-		CatalogApplication[] page = restTemplate.getForObject(BROOKLYN_BASE_URL
-				+ "/v1/catalog/applications", CatalogApplication[].class);
+		CatalogApplication[] page = restTemplate.getForObject(config.toFullUrl("v1/catalog/applications"), CatalogApplication[].class);
 		List<ServiceDefinition> definitions = new ArrayList<ServiceDefinition>();
 		for (CatalogApplication app : page) {
 			String id = app.getId();
