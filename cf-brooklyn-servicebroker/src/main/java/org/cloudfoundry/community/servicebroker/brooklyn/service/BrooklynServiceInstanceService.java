@@ -47,7 +47,7 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		}
 
 		ApplicationSpec applicationSpec = new ApplicationSpec();
-		applicationSpec.setLocation("localhost");
+		applicationSpec.setLocation(planId);
 		applicationSpec.setServices(Arrays.asList(service.getId()));
 
 		restTemplate.getMessageConverters().add(
