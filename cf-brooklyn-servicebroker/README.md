@@ -7,8 +7,9 @@ To run, ensure brooklyn is running, then,
     $ gradle clean
     $ gradle bootRun
 
-The project will then generate a security password,
-which should be used for making REST calls, for example
+The project will then generate a security password.
+
+For testing purposes you can use this for making REST calls without the CF tool, for example
 
     $ export PASSWORD=<the generated password>
     
