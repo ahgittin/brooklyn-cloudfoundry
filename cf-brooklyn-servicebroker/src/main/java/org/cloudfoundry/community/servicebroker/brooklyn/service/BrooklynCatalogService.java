@@ -1,4 +1,4 @@
-package org.cloudfoundry.community.servicebroker.brooklyn.config;
+package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,23 +8,22 @@ import java.util.Map;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Location;
-import org.cloudfoundry.community.servicebroker.brooklyn.service.BrooklynRestAdmin;
 import org.cloudfoundry.community.servicebroker.model.Catalog;
 import org.cloudfoundry.community.servicebroker.model.DashboardClient;
 import org.cloudfoundry.community.servicebroker.model.Plan;
 import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
+import org.cloudfoundry.community.servicebroker.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Service;
 
-@Configuration
-public class CatalogConfig {
+@Service
+public class BrooklynCatalogService implements CatalogService{
 
 	@Autowired
 	private BrooklynRestAdmin admin;
 
-	@Bean
-	public Catalog catalog() {
+	@Override
+	public Catalog getCatalog() {
 		CatalogApplication[] page = admin.getCatalogApplications();
 		
 		List<ServiceDefinition> definitions = new ArrayList<ServiceDefinition>();
@@ -39,12 +38,12 @@ public class CatalogConfig {
 			Map<String, Object> metadata = getServiceDefinitionMetadata();
 			List<String> requires = getTags();
 			DashboardClient dashboardClient = null;
-
+	
 			definitions.add(new ServiceDefinition(id, name, description,
 					bindable, planUpdatable, plans, tags, metadata, requires,
 					dashboardClient));
 		}
-
+	
 		return new Catalog(definitions);
 	}
 
@@ -68,6 +67,16 @@ public class CatalogConfig {
 	private Map<String, Object> getServiceDefinitionMetadata() {
 		Map<String, Object> metadata = new HashMap<String, Object>();
 		return metadata;
+	}
+
+	@Override
+	public ServiceDefinition getServiceDefinition(String serviceId) {
+		for(ServiceDefinition def : getCatalog().getServiceDefinitions()){
+			if(def.getId().equals(serviceId)){
+				return def;
+			}
+		}
+		return null;
 	}
 
 }
