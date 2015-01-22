@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.CatalogConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
+import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
@@ -41,17 +42,17 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		if (instance != null) {
 			throw new ServiceInstanceExistsException(instance);
 		}
-		instance = new ServiceInstance(serviceInstanceId, service.getId(), planId, organizationGuid, spaceGuid, null);
-		repository.put(serviceInstanceId, instance);
-
+		
 		ApplicationSpec applicationSpec = new ApplicationSpec();
 		applicationSpec.setLocation("localhost");
 		applicationSpec.setServices(Arrays.asList(service.getId()));
 		
 		restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
 		restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-        restTemplate.postForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications", applicationSpec, String.class);
+        Entity response = restTemplate.postForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications", applicationSpec, Entity.class);
         
+        instance = new ServiceInstance(serviceInstanceId, response.getEntityId(), planId, organizationGuid, spaceGuid, CatalogConfig.BROOKLYN_BASE_URL);
+		repository.put(serviceInstanceId, instance);
 		return instance;
 	}
 
@@ -64,8 +65,7 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 	public ServiceInstance updateServiceInstance(String instanceId,
 			String planId) throws ServiceInstanceUpdateNotSupportedException,
 			ServiceBrokerException, ServiceInstanceDoesNotExistException {
-		ServiceInstance instance = getServiceInstance(instanceId);
-		return instance;
+		throw new ServiceInstanceUpdateNotSupportedException("");
 	}
 
 	@Override
@@ -73,11 +73,8 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 			String planId) throws ServiceBrokerException {
 		ServiceInstance instance = getServiceInstance(id);
 		if (instance != null) {
-			System.out.println("Deleting service");
 			repository.remove(id);
-			// TODO find out the brooklyn identifiers to put into the following POST request.
-			restTemplate.postForObject(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications/{application}/entities/{entity}/effectors/{effector}", 
-					null, String.class);
+			restTemplate.delete(CatalogConfig.BROOKLYN_BASE_URL + "/v1/applications/{application}", instance.getServiceDefinitionId());
 		}
 		return instance;
 	}
