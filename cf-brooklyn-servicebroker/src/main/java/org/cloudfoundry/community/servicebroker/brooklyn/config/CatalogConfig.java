@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Location;
+import org.cloudfoundry.community.servicebroker.brooklyn.service.BrooklynRestAdmin;
 import org.cloudfoundry.community.servicebroker.model.Catalog;
 import org.cloudfoundry.community.servicebroker.model.DashboardClient;
 import org.cloudfoundry.community.servicebroker.model.Plan;
@@ -15,22 +16,17 @@ import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class CatalogConfig {
 
 	@Autowired
-	private BrooklynConfig config;
-	@Autowired
-	private RestTemplate restTemplate;
+	private BrooklynRestAdmin admin;
 
 	@Bean
 	public Catalog catalog() {
-		// get catalog info from REST call
-		CatalogApplication[] page = restTemplate.getForObject(
-				config.toFullUrl("v1/catalog/applications"),
-				CatalogApplication[].class);
+		CatalogApplication[] page = admin.getCatalogApplications();
+		
 		List<ServiceDefinition> definitions = new ArrayList<ServiceDefinition>();
 		for (CatalogApplication app : page) {
 			String id = app.getId();
@@ -57,8 +53,7 @@ public class CatalogConfig {
 	}
 
 	private List<Plan> getPlans() {
-		Location[] locations = restTemplate.getForObject(
-				config.toFullUrl("v1/locations"), Location[].class);
+		Location[] locations = admin.getLocations();
 		List<Plan> plans = new ArrayList<Plan>();
 		for (Location l : locations) {
 			String id = l.getName();

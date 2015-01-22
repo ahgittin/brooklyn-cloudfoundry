@@ -10,5 +10,5 @@ To run, ensure brooklyn is running, then,
 The project will then generate a security password,
 which should be used for making REST calls, for example
 
-    $ export PASSWORD=the generated password>
+    $ export PASSWORD=<the generated password>
     $ curl http://user:$PASSWORD@localhost:8080/v2/catalog

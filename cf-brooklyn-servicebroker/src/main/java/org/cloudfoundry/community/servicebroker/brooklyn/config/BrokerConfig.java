@@ -19,4 +19,5 @@ public class BrokerConfig {
 	public RestTemplate restTemplate(){
 		return new RestTemplate();
 	}
+	
 }

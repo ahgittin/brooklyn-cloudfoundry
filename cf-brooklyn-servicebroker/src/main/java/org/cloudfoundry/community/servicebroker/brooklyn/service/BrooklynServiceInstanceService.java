@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
@@ -17,22 +16,18 @@ import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
 import org.cloudfoundry.community.servicebroker.service.ServiceInstanceService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 @Service
 public class BrooklynServiceInstanceService implements ServiceInstanceService {
 
 	private Map<String, ServiceInstance> repository = new ConcurrentHashMap<String, ServiceInstance>();
-	private RestTemplate restTemplate;
-	private BrooklynConfig config;
+
+	private BrooklynRestAdmin admin;
 
 	@Autowired
-	public BrooklynServiceInstanceService(RestTemplate restTemplate, BrooklynConfig config) {
-		this.restTemplate = restTemplate;
-		this.config = config;
+	public BrooklynServiceInstanceService(BrooklynRestAdmin admin) {
+		this.admin = admin;
 	}
 
 	@Override
@@ -51,17 +46,11 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		applicationSpec.setLocation(planId);
 		applicationSpec.setServices(Arrays.asList(service.getId()));
 
-		restTemplate.getMessageConverters().add(
-				new MappingJackson2HttpMessageConverter());
-		restTemplate.getMessageConverters().add(
-				new StringHttpMessageConverter());
-		Entity response = restTemplate.postForObject(
-				config.toFullUrl("v1/applications"),
-				applicationSpec, Entity.class);
+		Entity response = admin.createApplication(applicationSpec);
 
 		instance = new ServiceInstance(serviceInstanceId,
 				response.getEntityId(), planId, organizationGuid, spaceGuid,
-				config.toFullUrl());
+				null);
 		repository.put(serviceInstanceId, instance);
 		return instance;
 	}
@@ -88,8 +77,7 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		ServiceInstance instance = getServiceInstance(id);
 		if (instance != null) {
 			repository.remove(id);
-			restTemplate.delete(config.toFullUrl("v1/applications/{application}"),
-					instance.getServiceDefinitionId());
+			admin.deleteApplication(instance.getServiceDefinitionId());
 		}
 		return instance;
 	}
