@@ -19,3 +19,5 @@ Then to get the catalog,
 To create a WebClusterDatabaseExample from the catalog
     
     $ curl http://user:$PASSWORD@localhost:8080/v2/service_instances/1234 -H "Content-Type: application/json" -d '{ "service_id": "brooklyn.demo.WebClusterDatabaseExample", "plan_id": "localhost", "organization_guid": "300","space_guid":"400"}' -X PUT
+
+    $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234?service_id=brooklyn&plan_id=brooklyn-plan" -X DELETE
