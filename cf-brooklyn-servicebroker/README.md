@@ -24,3 +24,26 @@ To create a WebClusterDatabaseExample from the catalog,
 Then to the delete it,
 
     $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234?service_id=brooklyn&plan_id=brooklyn-plan" -X DELETE
+    
+Using with the CF tool
+----------------------
+
+First, register the service broker with BOSH
+
+    $ cf create-service-broker <broker-name> <user> <password> <url>
+    
+Check for new services that have no access
+
+    $ cf service-access 
+    
+Enable those services that you wish to appear in the marketplace
+
+    $ cf enable-service-access <service-name>
+    
+Create the service that you wish to use
+
+    $ cf create-service <service-name> <plan-name> <service-instance-id>
+    
+Delete the service that you no longer need    
+
+    $ cf delete-service <service-instance-id>
