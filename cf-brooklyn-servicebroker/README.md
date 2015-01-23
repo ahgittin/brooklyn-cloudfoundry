@@ -1,39 +1,50 @@
 Cloud Foundry Brooklyn Service Broker
 -------------------------------------
 
-To run, ensure brooklyn is running, then,
+This project launches a CF broker which makes Brooklyn blueprints available as Cloud Foundry services.
 
+You will need [Gradle](http://www.gradle.org/installation) and [Brooklyn](http://brooklyn.io) installed.
+You will also need Java 8 -- 
+if that is not your system default, and it is too rough to change your system
+a standalone `jdk8` download can usually be activated in a single shell 
+by setting `export JAVA_HOME=/path/to/jdk8/Home` (or similar).
 
-    $ gradle clean
-    $ gradle bootRun
+Make sure Brooklyn is running, then do a `gradle clean bootRun`.
+The project will build and launch a REST API on port 8080.
+By default the project will create a user called `user` and generate a password.
 
-The by default the project will create a user called user and generate a password.
+    $ gradle clean bootRun
+    ...
 
-For testing purposes you can use this for making REST calls without the CF tool, for example
+    Using default security password: eb940e21-9c27-4f99-b27f-9692b71c40e0
 
-    $ export PASSWORD=<the generated password>
-    
-You can override this by setting the username and password in the application.properties file
+    ...
+
+You can override this by setting the username and password in the `application.properties` file
 
     security.user.name=<new-username>
     security.user.password=<password>
     
-Then to get the catalog,    
-    
+Make a note of these details. You'll need them to set up the broker with `cf` (below).
+
+You can also use this for making REST calls directly, bypassing CF, for testing.
+For instance to get the catalog,
+
+    $ export PASSWORD=<the generated password>
     $ curl http://user:$PASSWORD@localhost:8080/v2/catalog
     
-To create a WebClusterDatabaseExample from the catalog,
+And to create a WebClusterDatabaseExample from the catalog,
     
     $ curl http://user:$PASSWORD@localhost:8080/v2/service_instances/1234 -H "Content-Type: application/json" -d '{ "service_id": "brooklyn.demo.WebClusterDatabaseExample", "plan_id": "localhost", "organization_guid": "300","space_guid":"400"}' -X PUT
 
-Then to the delete it,
+And to the delete it,
 
     $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234?service_id=brooklyn&plan_id=brooklyn-plan" -X DELETE
     
 Using with the CF tool
 ----------------------
 
-First, register the service broker with BOSH
+First, register the service broker
 
     $ cf create-service-broker <broker-name> <user> <password> <url>
     
@@ -52,3 +63,4 @@ Create the service that you wish to use
 Delete the service that you no longer need    
 
     $ cf delete-service <service-instance-id>
+
