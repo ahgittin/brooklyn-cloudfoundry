@@ -7,11 +7,16 @@ To run, ensure brooklyn is running, then,
     $ gradle clean
     $ gradle bootRun
 
-The project will then generate a security password.
+The by default the project will create a user called user and generate a password.
 
 For testing purposes you can use this for making REST calls without the CF tool, for example
 
     $ export PASSWORD=<the generated password>
+    
+You can override this by setting the username and password in the application.properties file
+
+    security.user.name=<new-username>
+    security.user.password=<password>
     
 Then to get the catalog,    
     
