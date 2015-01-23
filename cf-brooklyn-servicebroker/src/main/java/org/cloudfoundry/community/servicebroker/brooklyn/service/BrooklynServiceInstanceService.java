@@ -44,7 +44,7 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		}
 
 		ApplicationSpec applicationSpec = new ApplicationSpec();
-		String location = "";
+		String location = "localhost"; // default
 		for(Plan p : service.getPlans()){
 			if(p.getId().equals(planId)){
 				location = p.getName();

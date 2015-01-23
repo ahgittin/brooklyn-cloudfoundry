@@ -1,10 +1,15 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
+import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySummary;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Location;
+import org.cloudfoundry.community.servicebroker.brooklyn.model.SensorSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -14,6 +19,9 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class BrooklynRestAdmin {
+	
+	// TODO: This class would be simpler if it used the Brooklyn client to access the
+	//       the REST api.
 	
 	@Autowired
 	private BrooklynConfig config;
@@ -66,5 +74,14 @@ public class BrooklynRestAdmin {
 		} catch (RestClientException e) {
 			// TODO log error
 		}
+	}
+
+	public List<SensorSummary[]> getEntitySensors(String serviceId) {
+		EntitySummary summary = restTemplate.getForObject(config.toFullUrl("v1/applications/{application}/entities"), EntitySummary.class);
+		List<SensorSummary[]> sensors = new ArrayList<SensorSummary[]>();
+		for(String link : summary.getLinks()){
+			sensors.add(restTemplate.getForObject(config.toFullUrl(link), SensorSummary[].class));
+		}
+		return sensors;
 	}
 }
