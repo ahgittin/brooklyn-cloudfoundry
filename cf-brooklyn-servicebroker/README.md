@@ -35,11 +35,11 @@ For instance to get the catalog,
     
 And to create a WebClusterDatabaseExample from the catalog,
     
-    $ curl http://user:$PASSWORD@localhost:8080/v2/service_instances/1234 -H "Content-Type: application/json" -d '{ "service_id": "brooklyn.demo.WebClusterDatabaseExample", "plan_id": "localhost", "organization_guid": "300","space_guid":"400"}' -X PUT
+    $ curl http://user:$PASSWORD@localhost:8080/v2/service_instances/1234 -H "Content-Type: application/json" -d '{ "service_id": "brooklyn.demo.WebClusterDatabaseExample", "plan_id": "brooklyn.demo.WebClusterDatabaseExample.localhost", "organization_guid": "300","space_guid":"400"}' -X PUT
 
 And to the delete it,
 
-    $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234?service_id=brooklyn&plan_id=brooklyn-plan" -X DELETE
+    $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234?service_id=brooklyn.demo.WebClusterDatabaseExample&plan_id=brooklyn.demo.WebClusterDatabaseExample.localhost" -X DELETE
     
 Using with the CF tool
 ----------------------
