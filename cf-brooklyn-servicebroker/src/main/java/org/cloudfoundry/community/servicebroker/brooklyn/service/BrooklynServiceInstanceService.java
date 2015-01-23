@@ -12,6 +12,7 @@ import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceUpdateNotSupportedException;
+import org.cloudfoundry.community.servicebroker.model.Plan;
 import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
 import org.cloudfoundry.community.servicebroker.service.ServiceInstanceService;
@@ -43,7 +44,13 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		}
 
 		ApplicationSpec applicationSpec = new ApplicationSpec();
-		applicationSpec.setLocation(planId);
+		String location = "";
+		for(Plan p : service.getPlans()){
+			if(p.getId().equals(planId)){
+				location = p.getName();
+			}
+		}
+		applicationSpec.setLocation(location);
 		applicationSpec.setServices(Arrays.asList(service.getId()));
 
 		Entity response = admin.createApplication(applicationSpec);

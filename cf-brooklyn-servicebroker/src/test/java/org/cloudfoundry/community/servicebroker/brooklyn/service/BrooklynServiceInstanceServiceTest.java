@@ -31,9 +31,7 @@ public class BrooklynServiceInstanceServiceTest {
 	private final static String SVC_INST_ID = "serviceInstanceId";
 	
 	@Mock
-	private RestTemplate restTemplate;
-	@Mock
-	private BrooklynConfig brooklynConfig;
+	private BrooklynRestAdmin admin;
 	@Mock
 	private ServiceDefinition serviceDefinition;
 	@Mock 
@@ -44,14 +42,14 @@ public class BrooklynServiceInstanceServiceTest {
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		service = new BrooklynServiceInstanceService(restTemplate, brooklynConfig);
+		service = new BrooklynServiceInstanceService(admin);
 	}
 	
 	@Test
 	public void newServiceInstanceCreatedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException {
 
-		when(restTemplate.postForObject(any(String.class), any(ApplicationSpec.class), eq(Entity.class))).thenReturn(entity);
+		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);
 		
 		ServiceInstance instance = service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 		
@@ -62,7 +60,7 @@ public class BrooklynServiceInstanceServiceTest {
 	@Test(expected=ServiceInstanceExistsException.class)
 	public void serviceInstanceCreationFailsWithExistingInstance()  
 			throws ServiceInstanceExistsException, ServiceBrokerException {
-		when(restTemplate.postForObject(any(String.class), any(ApplicationSpec.class), eq(Entity.class))).thenReturn(entity);		
+		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);		
 		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 	}
@@ -71,7 +69,7 @@ public class BrooklynServiceInstanceServiceTest {
 	public void serviceInstanceRetrievedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException{
 		
-		when(restTemplate.postForObject(any(String.class), any(ApplicationSpec.class), eq(Entity.class))).thenReturn(entity);
+		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);
 		
 		assertNull(service.getServiceInstance(SVC_INST_ID));
 		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
@@ -82,7 +80,7 @@ public class BrooklynServiceInstanceServiceTest {
 	public void serviceInstanceDeletedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException {
 
-		when(restTemplate.postForObject(any(String.class), any(ApplicationSpec.class), eq(Entity.class))).thenReturn(entity);
+		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);
 		
 		ServiceInstance instance = service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 		assertNotNull(service.getServiceInstance(SVC_INST_ID));

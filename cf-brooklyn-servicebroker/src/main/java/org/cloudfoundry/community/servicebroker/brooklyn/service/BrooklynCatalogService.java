@@ -33,7 +33,7 @@ public class BrooklynCatalogService implements CatalogService{
 			String description = app.getDescription();
 			boolean bindable = true;
 			boolean planUpdatable = false;
-			List<Plan> plans = getPlans();
+			List<Plan> plans = getPlans(id);
 			List<String> tags = getTags();
 			Map<String, Object> metadata = getServiceDefinitionMetadata();
 			List<String> requires = getTags();
@@ -51,11 +51,11 @@ public class BrooklynCatalogService implements CatalogService{
 		return Arrays.asList();
 	}
 
-	private List<Plan> getPlans() {
+	private List<Plan> getPlans(String serviceId) {
 		Location[] locations = admin.getLocations();
 		List<Plan> plans = new ArrayList<Plan>();
 		for (Location l : locations) {
-			String id = l.getName();
+			String id = serviceId + "." + l.getName();
 			String name = l.getSpec();
 			String description = "The location on which to deploy this service";
 			Map<String, Object> metadata = new HashMap<String, Object>();
