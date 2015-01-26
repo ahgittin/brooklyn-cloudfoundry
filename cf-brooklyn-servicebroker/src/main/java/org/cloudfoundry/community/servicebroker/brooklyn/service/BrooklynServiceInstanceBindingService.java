@@ -1,9 +1,12 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySensor;
+import org.cloudfoundry.community.servicebroker.brooklyn.model.SensorSummary;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceBindingExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
@@ -19,18 +22,16 @@ public class BrooklynServiceInstanceBindingService implements
 	private Map<String, ServiceInstanceBinding> repository = new ConcurrentHashMap<String, ServiceInstanceBinding>();
 
 	private BrooklynRestAdmin admin;
-	
+
 	@Autowired
 	public BrooklynServiceInstanceBindingService(BrooklynRestAdmin admin) {
 		this.admin = admin;
-		
+
 	}
-	
+
 	@Override
-	public ServiceInstanceBinding createServiceInstanceBinding(
-			String bindingId, ServiceInstance serviceInstance,
-			String serviceId, String planId, String appGuid)
-			throws ServiceInstanceBindingExistsException,
+	public ServiceInstanceBinding createServiceInstanceBinding(String bindingId, ServiceInstance serviceInstance,
+			String serviceId, String planId, String appGuid) throws ServiceInstanceBindingExistsException,
 			ServiceBrokerException {
 
 		ServiceInstanceBinding serviceInstanceBinding = getServiceInstanceBinding(bindingId);
@@ -38,25 +39,32 @@ public class BrooklynServiceInstanceBindingService implements
 			throw new ServiceInstanceBindingExistsException(
 					serviceInstanceBinding);
 		}
-		// do create stuff
-		Map<String, Object> credentials = new HashMap<String, Object>();
-//		credentials.put("uri", "mysql://mysqluser:pass@mysqlhost:3306/dbname");
-//		credentials.put("username", "mysqluser");
-//		credentials.put("password", "pass");
-//		credentials.put("host", "mysqlhost");
-//		credentials.put("port", 3306);
-//		credentials.put("database", "dbname");
-		admin.getEntitySensors(serviceId);
-		serviceInstanceBinding = new ServiceInstanceBinding(bindingId,
-				serviceInstance.getId(), credentials, null, appGuid);
+		// Get the credentials of the entities in brooklyn
+		Map<String, Object> credentials = getCredentials(serviceInstance);
+		serviceInstanceBinding = new ServiceInstanceBinding(bindingId, serviceInstance.getId(), credentials, null, appGuid);
 		repository.put(bindingId, serviceInstanceBinding);
 		return serviceInstanceBinding;
+	}
+
+	private Map<String, Object> getCredentials(ServiceInstance serviceInstance) {
+		
+		Map<String, Object> credentials = new HashMap<String, Object>();
+		for (EntitySensor entity : admin.getEntitySensors(serviceInstance.getServiceDefinitionId())) {
+			Map<String, String> sensors = new HashMap<String, String>();
+			for (SensorSummary s : entity.getSensors()) {
+				// it would probably be a good idea to filter these
+				sensors.put(s.getName(), admin.getSensorValue(s.getLinks().getSelf()));
+			}
+			credentials.put(entity.getName(), sensors);
+		}
+		return credentials;
 	}
 
 	@Override
 	public ServiceInstanceBinding deleteServiceInstanceBinding(
 			String bindingId, ServiceInstance instance, String serviceId,
 			String planId) throws ServiceBrokerException {
+		
 		ServiceInstanceBinding serviceInstanceBinding = getServiceInstanceBinding(bindingId);
 		if (serviceInstanceBinding != null) {
 			// do delete stuff
@@ -65,7 +73,7 @@ public class BrooklynServiceInstanceBindingService implements
 		return serviceInstanceBinding;
 	}
 
-	private ServiceInstanceBinding getServiceInstanceBinding(String id) {
+	protected ServiceInstanceBinding getServiceInstanceBinding(String id) {
 		return repository.get(id);
 	}
 

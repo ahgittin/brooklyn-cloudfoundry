@@ -16,6 +16,8 @@ import org.cloudfoundry.community.servicebroker.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import brooklyn.rest.domain.LocationSummary;
+
 @Service
 public class BrooklynCatalogService implements CatalogService{
 
@@ -52,9 +54,9 @@ public class BrooklynCatalogService implements CatalogService{
 	}
 
 	private List<Plan> getPlans(String serviceId) {
-		Location[] locations = admin.getLocations();
+		List<LocationSummary> locations = admin.getLocations();
 		List<Plan> plans = new ArrayList<Plan>();
-		for (Location l : locations) {
+		for (LocationSummary l : locations) {
 			String id = serviceId + "." + l.getName();
 			String name = l.getSpec();
 			String description = "The location on which to deploy this service";

@@ -1,8 +1,6 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -65,10 +63,6 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 	@Override
 	public ServiceInstance getServiceInstance(String id) {
 		return repository.get(id);
-	}
-	
-	protected List<ServiceInstance> getAllServiceInstances(){
-		return new ArrayList<ServiceInstance>(repository.values());
 	}
 
 	@Override
