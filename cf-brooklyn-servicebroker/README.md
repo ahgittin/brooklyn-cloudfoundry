@@ -41,6 +41,14 @@ And to the delete it,
 
     $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234?service_id=brooklyn.demo.WebClusterDatabaseExample&plan_id=brooklyn.demo.WebClusterDatabaseExample.localhost" -X DELETE
     
+Binding,
+
+    $ curl http://user:$PASSWORD@localhost:8080/v2/service_instances/1234/service_bindings/1234 -H "Content-Type: application/json" -d '{ "service_id": "brooklyn.demo.WebClusterDatabaseExample", "plan_id": "brooklyn.demo.WebClusterDatabaseExample.localhost", "app_guid":"400"}' -X PUT
+    
+And unbinding,
+
+    $ curl "http://user:$PASSWORD@localhost:8080/v2/service_instances/1234/service_bindings/1234?service_id=brooklyn.demo.WebClusterDatabaseExample&plan_id=brooklyn.demo.WebClusterDatabaseExample.localhost" -X DELETE
+    
 Using with the CF tool
 ----------------------
 
@@ -64,3 +72,10 @@ Delete the service that you no longer need
 
     $ cf delete-service <service-instance-id>
 
+Bind the service
+
+    $ cf bind-service my-app my-service
+    
+Unbind the service
+
+    $ cf unbind-service my-app my-service
