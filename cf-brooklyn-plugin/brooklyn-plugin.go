@@ -2,55 +2,131 @@ package main
 
 import (
 	"fmt"
-
+	"github.com/cloudfoundry-incubator/candiedyaml"
+	"github.com/cloudfoundry/cli/cf/errors"
+	. "github.com/cloudfoundry/cli/cf/i18n"
+	"github.com/cloudfoundry/cli/generic"
 	"github.com/cloudfoundry/cli/plugin"
+	"io"
+	"os"
+	"path/filepath"
 )
 
-/*
-*	This is the struct implementing the interface defined by the core CLI. It can
-*	be found at  "github.com/cloudfoundry/cli/plugin/plugin.go"
-*
- */
 type BrooklynPlugin struct{}
 
-/*
-*	This function must be implemented by any plugin because it is part of the
-*	plugin interface defined by the core CLI.
-*
-*	Run(....) is the entry point when the core CLI is invoking a command defined
-*	by a plugin. The first parameter, plugin.CliConnection, is a struct that can
-*	be used to invoke cli commands. The second paramter, args, is a slice of
-*	strings. args[0] will be the name of the command, and will be followed by
-*	any additional arguments a cli user typed in.
-*
-*	Any error handling should be handled with the plugin itself (this means printing
-*	user facing errors). The CLI will exit 0 if the plugin exits 0 and will exit
-*	1 should the plugin exits nonzero.
- */
+func (c *BrooklynPlugin) readYAMLFile(path string) (yamlMap generic.Map, err error) {
+	fmt.Println("Reading YAML")
+	file, err := os.Open(filepath.Clean(path))
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	yamlMap, err = c.parseManifest(file)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *BrooklynPlugin) parseManifest(file io.Reader) (yamlMap generic.Map, err error) {
+	decoder := candiedyaml.NewDecoder(file)
+	yamlMap = generic.NewMap()
+	err = decoder.Decode(yamlMap)
+	if err != nil {
+		return
+	}
+
+	if !generic.IsMappable(yamlMap) {
+		err = errors.New(T("Invalid manifest. Expected a map"))
+		return
+	}
+
+	return
+}
+
+func (c *BrooklynPlugin) writeYAMLFile(yamlMap generic.Map, path string) {
+
+	fileToWrite, err := os.Create(path)
+	if err != nil {
+		println("Failed to open file for writing:", err.Error())
+		return
+	}
+
+	encoder := candiedyaml.NewEncoder(fileToWrite)
+	err = encoder.Encode(yamlMap)
+
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func (c *BrooklynPlugin) assert(cond bool, message string) {
+	if !cond {
+		fmt.Println("PLUGIN ERROR: ", message)
+	}
+}
+
 func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	// Ensure that we called the command brooklyn
 	if args[0] == "brooklyn" {
 		fmt.Println("Running the brooklyn command")
+		// modify the application manifest before passing to
+		// to original command
+		yamlMap, err := c.readYAMLFile("manifest.yml")
+		if err != nil {
+			fmt.Println("PLUGIN ERROR: ", err)
+		}
+		//fmt.Println(yamlMap)
+		fmt.Println("getting brooklyn")
+		// find the section that begins "brooklyn"
+		applications := yamlMap.Get("applications").([]interface{})
+
+		for _, app := range applications {
+			//fmt.Println("app...\n", app)
+			application, found := app.(map[interface{}]interface{})
+			c.assert(found, "")
+			brooklyn, found := application["brooklyn"].([]interface{})
+			c.assert(found, "")
+
+			services := []string{}
+			for _, brooklynApp := range brooklyn {
+				//fmt.Println("brooklyn app... \n", brooklynApp)
+				brooklynApplication, found := brooklynApp.(map[interface{}]interface{})
+				c.assert(found, "")
+				name, found := brooklynApplication["name"].(string)
+				c.assert(found, "")
+				// do brooklyn calls here to setup
+				// cliConnection.CliCommand("create-service", "service-name", "plan-name", name)
+
+				services = append(services, name)
+			}
+			application["services"] = services
+			delete(application, "brooklyn")
+			fmt.Println("\nmodified...", application)
+		}
+		c.writeYAMLFile(yamlMap, "manifest.temp.yml")
+		output, err := cliConnection.CliCommand(args[1:]...)
+
+		if err != nil {
+			fmt.Println("PLUGIN ERROR: Error from CliCommand: ", err)
+		}
+
+		// Print the output returned from the CLI command.
+		fmt.Println("")
+		fmt.Println("---------- Command output from the plugin ----------")
+		for index, val := range output {
+			fmt.Println("#", index, " value: ", val)
+		}
 	}
 }
 
-/*
-*	This function must be implemented as part of the	plugin interface
-*	defined by the core CLI.
-*
-*	GetMetadata() returns a PluginMetadata struct. The first field, Name,
-*	determines the name of the plugin which should generally be without spaces.
-*	If there are spaces in the name a user will need to properly quote the name
-*	during uninstall otherwise the name will be treated as seperate arguments.
-*	The second value is a slice of Command structs. Our slice only contains one
-*	Command Struct, but could contain any number of them. The first field Name
-*	defines the command `cf basic-plugin-command` once installed into the CLI. The
-*	second field, HelpText, is used by the core CLI to display help information
-*	to the user in the core commands `cf help`, `cf`, or `cf -h`.
- */
 func (c *BrooklynPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "MyBasicPlugin",
+		Name: "BrooklynPlugin",
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 0,
@@ -71,22 +147,6 @@ func (c *BrooklynPlugin) GetMetadata() plugin.PluginMetadata {
 	}
 }
 
-/*
-* Unlike most Go programs, the `Main()` function will not be used to run all of the
-* commands provided in your plugin. Main will be used to initialize the plugin
-* process, as well as any dependencies you might require for your
-* plugin.
- */
 func main() {
-	// Any initialization for your plugin can be handled here
-	//
-	// Note: to run the plugin.Start method, we pass in a pointer to the struct
-	// implementing the interface defined at "github.com/cloudfoundry/cli/plugin/plugin.go"
-	//
-	// Note: The plugin's main() method is invoked at install time to collect
-	// metadata. The plugin will exit 0 and the Run([]string) method will not be
-	// invoked.
 	plugin.Start(new(BrooklynPlugin))
-	// Plugin code should be written in the Run([]string) method,
-	// ensuring the plugin environment is bootstrapped.
 }
