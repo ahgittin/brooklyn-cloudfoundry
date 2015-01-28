@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type BrooklynPlugin struct{}
@@ -99,8 +100,12 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 				c.assert(found, "")
 				name, found := brooklynApplication["name"].(string)
 				c.assert(found, "")
+				location, found := brooklynApplication["location"].(string)
+				c.assert(found, "")
+				service, found := brooklynApplication["service"].(string)
+				c.assert(found, "")
 				// do brooklyn calls here to setup
-				// cliConnection.CliCommand("create-service", "service-name", "plan-name", name)
+				cliConnection.CliCommand("create-service", strconv.Quote(service), strconv.Quote(location), strconv.Quote(name))
 
 				services = append(services, name)
 			}
@@ -109,18 +114,7 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			fmt.Println("\nmodified...", application)
 		}
 		c.writeYAMLFile(yamlMap, "manifest.temp.yml")
-		output, err := cliConnection.CliCommand(args[1:]...)
-
-		if err != nil {
-			fmt.Println("PLUGIN ERROR: Error from CliCommand: ", err)
-		}
-
-		// Print the output returned from the CLI command.
-		fmt.Println("")
-		fmt.Println("---------- Command output from the plugin ----------")
-		for index, val := range output {
-			fmt.Println("#", index, " value: ", val)
-		}
+		cliConnection.CliCommand(args[1:]...)
 	}
 }
 
