@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
 type BrooklynPlugin struct{}
@@ -73,10 +72,12 @@ func (c *BrooklynPlugin) assert(cond bool, message string) {
 
 func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	// Ensure that we called the command brooklyn
-	if args[0] == "brooklyn" {
+	if args[1] == "push" {
 		fmt.Println("Running the brooklyn command")
 		// modify the application manifest before passing to
 		// to original command
+		
+		// TODO if -f flag sets manifest use that instead
 		yamlMap, err := c.readYAMLFile("manifest.yml")
 		if err != nil {
 			fmt.Println("PLUGIN ERROR: ", err)
@@ -105,7 +106,7 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 				service, found := brooklynApplication["service"].(string)
 				c.assert(found, "")
 				// do brooklyn calls here to setup
-				cliConnection.CliCommand("create-service", strconv.Quote(service), strconv.Quote(location), strconv.Quote(name))
+				cliConnection.CliCommand("create-service", service, location, name)
 
 				services = append(services, name)
 			}
@@ -114,7 +115,14 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			fmt.Println("\nmodified...", application)
 		}
 		c.writeYAMLFile(yamlMap, "manifest.temp.yml")
-		cliConnection.CliCommand(args[1:]...)
+		_, err = cliConnection.CliCommand(append(args[1:], "-f", "manifest.temp.yml")...)
+		if err != nil {
+			fmt.Println("ERROR: ", err)
+		}
+		err = os.Remove("manifest.temp.yml")
+		if err != nil {
+			fmt.Println("PLUGIN ERROR: ", err)
+		}
 	}
 }
 
