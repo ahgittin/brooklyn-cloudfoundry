@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"net/http"
 )
 
 type BrooklynPlugin struct{}
@@ -70,10 +71,8 @@ func (c *BrooklynPlugin) assert(cond bool, message string) {
 	}
 }
 
-func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
-	// Ensure that we called the command brooklyn
-	if args[1] == "push" {
-		fmt.Println("Running the brooklyn command")
+func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string){
+	fmt.Println("Running the brooklyn command")
 		// modify the application manifest before passing to
 		// to original command
 		
@@ -115,7 +114,7 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			fmt.Println("\nmodified...", application)
 		}
 		c.writeYAMLFile(yamlMap, "manifest.temp.yml")
-		_, err = cliConnection.CliCommand(append(args[1:], "-f", "manifest.temp.yml")...)
+		_, err = cliConnection.CliCommand(append(args, "-f", "manifest.temp.yml")...)
 		if err != nil {
 			fmt.Println("ERROR: ", err)
 		}
@@ -123,6 +122,42 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		if err != nil {
 			fmt.Println("PLUGIN ERROR: ", err)
 		}
+}
+
+func (c *BrooklynPlugin) addCatalog(cliConnection plugin.CliConnection, args []string) {
+	brooklynUrl := args[1] + "/v1/catalog"
+	//brooklynUrl := "http://admin:password@192.168.50.101:8081/v1/catalog"
+	file, err := os.Open(filepath.Clean(args[2]))
+	if err != nil {
+		fmt.Println("ERROR: ", err)
+	}
+	defer file.Close()
+	req, err := http.NewRequest("POST", brooklynUrl, file)
+	req.Header.Set("Content-Type", "application/octet-stream")
+	
+	client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+		fmt.Println("ERROR: ", err)
+        panic(err)
+    }
+    defer resp.Body.Close()
+
+    //fmt.Println("response Status:", resp.Status)
+    //fmt.Println("response Headers:", resp.Header)
+    //body, _ := ioutil.ReadAll(resp.Body)
+    //fmt.Println("response Body:", string(body))
+}
+
+
+
+func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
+	
+	switch args[1] {
+	case "push":
+		c.push(cliConnection, args[1:])
+	case "add-catalog":
+		c.addCatalog(cliConnection, args[1:])
 	}
 }
 
