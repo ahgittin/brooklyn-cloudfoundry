@@ -10,14 +10,15 @@ To install,
 
 To run,
 
-    $ cf brooklyn <original-command>
+    $ cf brooklyn push
 
 this will lookup the manifest.yml, and if it contains a section
 called brooklyn, it will use a service broker to create these
 services and create a new manifest.temp.yml file taking out
 the brooklyn service and replacing it with a services section
 containing the service instances created by the brooklyn service
-broker.
+broker. It will then delegate to the original push command with
+the manifest.temp.yml file before deleting it.
 
 To uninstall,
 
