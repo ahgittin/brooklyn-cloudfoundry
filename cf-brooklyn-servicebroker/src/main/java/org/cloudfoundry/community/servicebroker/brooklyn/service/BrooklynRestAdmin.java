@@ -1,6 +1,5 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,15 +8,17 @@ import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySensor;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySummary;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.SensorSummary;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import brooklyn.rest.client.BrooklynApi;
 import brooklyn.rest.domain.LocationSummary;
@@ -66,6 +67,7 @@ public class BrooklynRestAdmin {
 	public void deleteApplication(String id) {
 		System.out.println("deleting id " + id);
 		restApi.getApplicationApi().delete(id);
+				
 	}
 	
 	public Map<String, Object> getApplicationSensors(String application){
@@ -80,5 +82,9 @@ public class BrooklynRestAdmin {
 			result.put(s.getName(), sensors);
 		}
 		return result;
+	}
+
+	public void postBlueprint(String file) {
+		restApi.getCatalogApi().create(file);
 	}
 }
