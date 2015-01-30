@@ -64,6 +64,8 @@ dependencies {
 		exclude module: "slf4j-log4j12"
 		exclude module: "jetty-server"
 	}
+	compile('commons-codec:commons-codec:1.10')
+	
 }
 
 task wrapper(type: Wrapper) {
