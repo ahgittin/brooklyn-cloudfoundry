@@ -39,25 +39,10 @@ public class BrooklynServiceInstanceBindingService implements
 			throw new ServiceInstanceBindingExistsException(
 					serviceInstanceBinding);
 		}
-		// Get the credentials of the entities in brooklyn
-		Map<String, Object> credentials = getCredentials(serviceInstance);
+		Map<String, Object> credentials = admin.getApplicationSensors(serviceInstance.getServiceDefinitionId());
 		serviceInstanceBinding = new ServiceInstanceBinding(bindingId, serviceInstance.getId(), credentials, null, appGuid);
 		repository.put(bindingId, serviceInstanceBinding);
 		return serviceInstanceBinding;
-	}
-
-	private Map<String, Object> getCredentials(ServiceInstance serviceInstance) {
-		
-		Map<String, Object> credentials = new HashMap<String, Object>();
-		for (EntitySensor entity : admin.getEntitySensors(serviceInstance.getServiceDefinitionId())) {
-			Map<String, String> sensors = new HashMap<String, String>();
-			for (SensorSummary s : entity.getSensors()) {
-				// it would probably be a good idea to filter these
-				sensors.put(s.getName(), admin.getSensorValue(s.getLinks().getSelf()));
-			}
-			credentials.put(entity.getName(), sensors);
-		}
-		return credentials;
 	}
 
 	@Override

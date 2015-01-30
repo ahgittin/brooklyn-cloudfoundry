@@ -1,7 +1,9 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
@@ -18,7 +20,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import brooklyn.rest.client.BrooklynApi;
-import brooklyn.rest.domain.CatalogItemSummary;
 import brooklyn.rest.domain.LocationSummary;
 
 @Service
@@ -67,22 +68,17 @@ public class BrooklynRestAdmin {
 		restApi.getApplicationApi().delete(id);
 	}
 	
-	public String getSensorValue(String link){
-		return restTemplate.getForObject(config.toFullUrl(link), String.class);
-	}
-
-	public List<EntitySensor> getEntitySensors(String serviceId) {
-		
-		EntitySummary[] summary = restTemplate.getForObject(
-				config.toFullUrl("v1/applications/{application}/entities"), EntitySummary[].class, serviceId);
-		
-		List<EntitySensor> entitySensors = new ArrayList<EntitySensor>();
-		for(EntitySummary s : summary){
-			String sensorLink = s.getLinks().getSensors();
-			SensorSummary[] sensors = restTemplate.getForObject(config.toFullUrl(sensorLink), SensorSummary[].class);
-			entitySensors.add(new EntitySensor(s.getName(), sensors));
+	public Map<String, Object> getApplicationSensors(String application){
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (brooklyn.rest.domain.EntitySummary s : restApi.getEntityApi().list(application)) {
+			String entity = s.getId();
+			Map<String, Object> sensors = new HashMap<String, Object>();
+			for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
+				String sensor = sensorSummary.getName();
+				sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor));
+			}
+			result.put(s.getName(), sensors);
 		}
-		
-		return entitySensors;
+		return result;
 	}
 }
