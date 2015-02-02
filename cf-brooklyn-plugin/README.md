@@ -20,7 +20,7 @@ containing the service instances created by the brooklyn service
 broker. It will then delegate to the original push command with
 the manifest.temp.yml file before deleting it.
 
-    $ cf brooklyn add-catalog <brooklyn-url> <path/to/blueprint.yml>
+    $ cf brooklyn add-catalog <broker> <username> <password> <path/to/blueprint.yml>
     
 this allows new entities to be created and added to the brooklyn
 catalog.  The service broker that is associated will need to be
