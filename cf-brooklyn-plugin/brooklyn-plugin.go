@@ -8,9 +8,13 @@ import (
 	"github.com/cloudfoundry/cli/generic"
 	"github.com/cloudfoundry/cli/plugin"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"net/http"
+	//"reflect"
+	"strings"
+	"net/url"
 )
 
 type BrooklynPlugin struct{}
@@ -67,7 +71,7 @@ func (c *BrooklynPlugin) writeYAMLFile(yamlMap generic.Map, path string) {
 
 func (c *BrooklynPlugin) assert(cond bool, message string) {
 	if !cond {
-		fmt.Println("PLUGIN ERROR: ", message)
+		panic(errors.New("PLUGIN ERROR: " + message))
 	}
 }
 
@@ -105,7 +109,7 @@ func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string)
 				service, found := brooklynApplication["service"].(string)
 				c.assert(found, "")
 				// do brooklyn calls here to setup
-				cliConnection.CliCommand("create-service", service, location, name)
+				cliConnection.CliCommandWithoutTerminalOutput("create-service", service, location, name)
 
 				services = append(services, name)
 			}
@@ -124,41 +128,64 @@ func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string)
 		}
 }
 
-func (c *BrooklynPlugin) addCatalog(cliConnection plugin.CliConnection, args []string) {
-	brooklynUrl := args[1] + "/v1/catalog"
-	//brooklynUrl := "http://admin:password@192.168.50.101:8081/v1/catalog"
-	file, err := os.Open(filepath.Clean(args[2]))
-	if err != nil {
-		fmt.Println("ERROR: ", err)
+func (c *BrooklynPlugin) serviceBrokerUrl(cliConnection plugin.CliConnection, broker string) (string, error){
+	brokers, err := cliConnection.CliCommandWithoutTerminalOutput("service-brokers")
+	c.assert(err == nil, "")
+	for _, a := range brokers {
+		fields := strings.Fields(a)	
+		if fields[0] == broker { 
+			return fields[1], nil
+		}
 	}
+	return "", errors.New("No such broker")
+}
+
+func (c *BrooklynPlugin) addCatalog(cliConnection plugin.CliConnection, args []string) {
+	fmt.Println("Adding Brooklyn catalog item...")
+	brokerUrl, err := c.serviceBrokerUrl(cliConnection, args[1])
+	c.assert(err == nil, "")
+	brooklynUrl, err := url.Parse(brokerUrl)
+	c.assert(err == nil, "")	
+	brooklynUrl.Path = "create"
+	brooklynUrl.User = url.UserPassword(args[2], args[3])
+	file, err := os.Open(filepath.Clean(args[4]))
+	c.assert(err == nil, "")
 	defer file.Close()
-	req, err := http.NewRequest("POST", brooklynUrl, file)
-	req.Header.Set("Content-Type", "application/octet-stream")
+	
+	req, err := http.NewRequest("POST", brooklynUrl.String(), file)
+	c.assert(err == nil, "")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	
 	client := &http.Client{}
     resp, err := client.Do(req)
-    if err != nil {
-		fmt.Println("ERROR: ", err)
-        panic(err)
-    }
+    c.assert(err == nil, "")
     defer resp.Body.Close()
-
-    //fmt.Println("response Status:", resp.Status)
-    //fmt.Println("response Headers:", resp.Header)
-    //body, _ := ioutil.ReadAll(resp.Body)
-    //fmt.Println("response Body:", string(body))
+	if resp.Status != "200 OK" {
+    	fmt.Println("response Status:", resp.Status)
+    	fmt.Println("response Headers:", resp.Header)
+    	body, _ := ioutil.ReadAll(resp.Body)
+    	fmt.Println("response Body:", string(body))
+	}
 }
 
 
 
 func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
-	
+	defer func() {
+        if r := recover(); r != nil {
+            fmt.Println(r)
+        }
+    }()
 	switch args[1] {
 	case "push":
 		c.push(cliConnection, args[1:])
 	case "add-catalog":
+		c.assert(len(args) == 6, "incorrect number of arguments")
 		c.addCatalog(cliConnection, args[1:])
+		defer fmt.Println("Catalog item sucessfully added.")
 	}
+	fmt.Println("OK")
+	
 }
 
 func (c *BrooklynPlugin) GetMetadata() plugin.PluginMetadata {
