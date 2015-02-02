@@ -113,6 +113,14 @@ func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string)
 
 				services = append(services, name)
 			}
+			
+			// check to see if services section already exists
+			if oldServices, found := application["services"].([]interface {}); found {
+				for _, name := range oldServices {
+					//fmt.Println("found", name)
+    				services = append(services, name.(string))
+				}
+			}
 			application["services"] = services
 			delete(application, "brooklyn")
 			fmt.Println("\nmodified...", application)
@@ -122,10 +130,10 @@ func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string)
 		if err != nil {
 			fmt.Println("ERROR: ", err)
 		}
-		err = os.Remove("manifest.temp.yml")
-		if err != nil {
-			fmt.Println("PLUGIN ERROR: ", err)
-		}
+		//err = os.Remove("manifest.temp.yml")
+		//if err != nil {
+		//	fmt.Println("PLUGIN ERROR: ", err)
+		//}
 }
 
 func (c *BrooklynPlugin) serviceBrokerUrl(cliConnection plugin.CliConnection, broker string) (string, error){
