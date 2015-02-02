@@ -46,7 +46,7 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	public void newServiceInstanceBindingCreatedSuccessfully() 
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException {
 
-		when(admin.getEntitySensors(any(String.class))).thenReturn(Collections.emptyList());
+		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());
 		ServiceInstanceBinding binding = bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
 		
 		assertNotNull(binding);
@@ -56,7 +56,7 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	@Test(expected=ServiceInstanceBindingExistsException.class)
 	public void serviceInstanceCreationFailsWithExistingInstance()  
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException {
-		when(admin.getEntitySensors(any(String.class))).thenReturn(Collections.emptyList());		
+		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());		
 		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
 		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
 	}
@@ -64,8 +64,8 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	@Test
 	public void serviceInstanceBindingRetrievedSuccessfully() 
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException{
-		
-		when(admin.getEntitySensors(any(String.class))).thenReturn(Collections.emptyList());
+
+		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());
 		
 		assertNull(bindingService.getServiceInstanceBinding(SVC_INST_BIND_ID));		
 		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
@@ -76,7 +76,7 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	public void serviceInstanceBindingDeletedSuccessfully() 
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException {
 
-		when(admin.getEntitySensors(any(String.class))).thenReturn(Collections.emptyList());
+		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());
 		
 		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
 		assertNotNull(bindingService.getServiceInstanceBinding(SVC_INST_BIND_ID));

@@ -1,24 +1,26 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySensor;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySummary;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.SensorSummary;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import brooklyn.rest.client.BrooklynApi;
-import brooklyn.rest.domain.CatalogItemSummary;
 import brooklyn.rest.domain.LocationSummary;
 
 @Service
@@ -44,10 +46,6 @@ public class BrooklynRestAdmin {
 		}
 		return page;
 	}
-	
-	public List<CatalogItemSummary> getCatalogApplications2(){
-		return restApi.getCatalogApi().listApplications("", "");
-	}
 
 	public List<LocationSummary> getLocations() {
 		return restApi.getLocationApi().list();
@@ -69,24 +67,24 @@ public class BrooklynRestAdmin {
 	public void deleteApplication(String id) {
 		System.out.println("deleting id " + id);
 		restApi.getApplicationApi().delete(id);
+				
 	}
 	
-	public String getSensorValue(String link){
-		return restTemplate.getForObject(config.toFullUrl(link), String.class);
+	public Map<String, Object> getApplicationSensors(String application){
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (brooklyn.rest.domain.EntitySummary s : restApi.getEntityApi().list(application)) {
+			String entity = s.getId();
+			Map<String, Object> sensors = new HashMap<String, Object>();
+			for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
+				String sensor = sensorSummary.getName();
+				sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor));
+			}
+			result.put(s.getName(), sensors);
+		}
+		return result;
 	}
 
-	public List<EntitySensor> getEntitySensors(String serviceId) {
-		
-		EntitySummary[] summary = restTemplate.getForObject(
-				config.toFullUrl("v1/applications/{application}/entities"), EntitySummary[].class, serviceId);
-		
-		List<EntitySensor> entitySensors = new ArrayList<EntitySensor>();
-		for(EntitySummary s : summary){
-			String sensorLink = s.getLinks().getSensors();
-			SensorSummary[] sensors = restTemplate.getForObject(config.toFullUrl(sensorLink), SensorSummary[].class);
-			entitySensors.add(new EntitySensor(s.getName(), sensors));
-		}
-		
-		return entitySensors;
+	public void postBlueprint(String file) {
+		restApi.getCatalogApi().create(file);
 	}
 }
