@@ -16,6 +16,7 @@ import org.cloudfoundry.community.servicebroker.service.CatalogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import brooklyn.rest.domain.CatalogItemSummary;
 import brooklyn.rest.domain.LocationSummary;
 
 @Service
@@ -26,10 +27,10 @@ public class BrooklynCatalogService implements CatalogService{
 
 	@Override
 	public Catalog getCatalog() {
-		CatalogApplication[] page = admin.getCatalogApplications();
-		
+		//CatalogApplication[] page = admin.getCatalogApplications();
+		List<CatalogItemSummary> page = admin.getCatalogApplicaitons();
 		List<ServiceDefinition> definitions = new ArrayList<ServiceDefinition>();
-		for (CatalogApplication app : page) {
+		for (CatalogItemSummary app : page) {
 			String id = app.getId();
 			String name = app.getName();
 			String description = app.getDescription();
