@@ -17,6 +17,11 @@ import org.cloudfoundry.community.servicebroker.service.ServiceInstanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import brooklyn.rest.domain.EntitySpec;
+import brooklyn.rest.domain.TaskSummary;
+
+import com.google.common.collect.ImmutableSet;
+
 @Service
 public class BrooklynServiceInstanceService implements ServiceInstanceService {
 
@@ -40,21 +45,29 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		if (instance != null) {
 			throw new ServiceInstanceExistsException(instance);
 		}
+		
 
-		ApplicationSpec applicationSpec = new ApplicationSpec();
+		//ApplicationSpec applicationSpec = new ApplicationSpec();
 		String location = "localhost"; // default
 		for(Plan p : service.getPlans()){
 			if(p.getId().equals(planId)){
 				location = p.getName();
 			}
 		}
-		applicationSpec.setLocation(location);
-		applicationSpec.setServices(Arrays.asList(service.getId()));
+//		applicationSpec.setLocation(location);
+//		applicationSpec.setServices(Arrays.asList(service.getId()));
+		
+//		brooklyn.rest.domain.ApplicationSpec spec = brooklyn.rest.domain.ApplicationSpec.builder()
+//			.entities(ImmutableSet.of(new EntitySpec()))
+//			.locations(ImmutableSet.of(location)).build();
+		
+		TaskSummary taskSummary = admin.createApplication("{\"services\":[\"type\": \"" + service.getId() + "\"], \"locations\": [ \"" + location +"\"]}");
 
-		Entity response = admin.createApplication(applicationSpec);
+		//Entity response = admin.createApplication(applicationSpec);
 
 		instance = new ServiceInstance(serviceInstanceId,
-				response.getEntityId(), planId, organizationGuid, spaceGuid,
+				taskSummary.getEntityId(),//response.getEntityId(), 
+				planId, organizationGuid, spaceGuid,
 				null);
 		repository.put(serviceInstanceId, instance);
 		return instance;

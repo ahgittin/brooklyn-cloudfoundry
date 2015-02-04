@@ -4,9 +4,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
 import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -18,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import brooklyn.rest.client.BrooklynApi;
 import brooklyn.rest.domain.CatalogItemSummary;
 import brooklyn.rest.domain.LocationSummary;
+import brooklyn.rest.domain.TaskSummary;
 
 @Service
 public class BrooklynRestAdmin {
@@ -41,23 +43,15 @@ public class BrooklynRestAdmin {
 		return restApi.getLocationApi().list();
 	}
 	
-	public Entity createApplication(ApplicationSpec applicationSpec) {
-		Entity response;
-		try {
-			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-			restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-			response = restTemplate.postForObject(
-					config.toFullUrl("v1/applications"), applicationSpec, Entity.class);
-		} catch (RestClientException e) {
-			response = new Entity();
-		}
-		return response;
+	public TaskSummary createApplication(String applicationSpec){
+		Response response = restApi.getApplicationApi().createFromForm(applicationSpec);
+		return BrooklynApi.getEntity(response, TaskSummary.class);
 	}
 	
-	public void deleteApplication(String id) {
+	public TaskSummary deleteApplication(String id) {
 		System.out.println("deleting id " + id);
-		restApi.getApplicationApi().delete(id);
-				
+		Response response = restApi.getApplicationApi().delete(id);
+		return BrooklynApi.getEntity(response, TaskSummary.class);	
 	}
 	
 	public Map<String, Object> getApplicationSensors(String application){
@@ -74,7 +68,8 @@ public class BrooklynRestAdmin {
 		return result;
 	}
 
-	public void postBlueprint(String file) {
-		restApi.getCatalogApi().create(file);
+	public String postBlueprint(String file) {
+		Response response = restApi.getCatalogApi().create(file);
+		return BrooklynApi.getEntity(response, String.class);
 	}
 }
