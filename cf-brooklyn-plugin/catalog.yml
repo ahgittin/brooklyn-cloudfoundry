@@ -1,0 +1,24 @@
+brooklyn.catalog:
+  id: my-mongo
+  version: 1.0
+  iconUrl: classpath://mysql.png
+  description: My MongoDB
+
+name: MongoDB
+services:
+- type: brooklyn.entity.basic.BasicApplication
+  brooklyn.children:
+  - type: brooklyn.entity.nosql.mongodb.MongoDBServer
+    id: mySingleServer
+    name: mongod
+  - type: brooklyn.entity.nosql.mongodb.MongoDBClient
+    name: MongoDB Javascript Client
+    brooklyn.config:
+      server: $brooklyn:component("mySingleServer")
+      scripts:
+        insert: classpath://mongo-product-insert.js 
+        update: classpath://mongo-product-update.js
+        delete: classpath://mongo-product-delete.js
+      startupJsScripts: # These will be run in order on startup
+        - insert
+        - update
