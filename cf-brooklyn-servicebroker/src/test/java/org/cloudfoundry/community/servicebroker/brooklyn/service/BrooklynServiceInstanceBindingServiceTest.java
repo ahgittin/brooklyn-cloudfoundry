@@ -9,10 +9,8 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.BrooklynConfiguration;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceBindingExistsException;
-import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstanceBinding;
 import org.junit.Before;

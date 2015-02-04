@@ -4,24 +4,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
+
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.CatalogApplication;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 
 import brooklyn.rest.client.BrooklynApi;
+import brooklyn.rest.domain.CatalogItemSummary;
 import brooklyn.rest.domain.LocationSummary;
+import brooklyn.rest.domain.TaskSummary;
 
 @Service
 public class BrooklynRestAdmin {
@@ -35,39 +28,25 @@ public class BrooklynRestAdmin {
 	private RestTemplate restTemplate;
 	@Autowired
 	private BrooklynApi restApi;
+
 	
-	public CatalogApplication[] getCatalogApplications() {
-		CatalogApplication[] page;
-		try{
-			page = restTemplate.getForObject(
-				config.toFullUrl("v1/catalog/applications"), CatalogApplication[].class);
-		}catch(RestClientException e){
-			page = new CatalogApplication[0];
-		}
-		return page;
+	public List<CatalogItemSummary> getCatalogApplicaitons(){
+		return restApi.getCatalogApi().listApplications("", "");
 	}
 
 	public List<LocationSummary> getLocations() {
 		return restApi.getLocationApi().list();
 	}
 	
-	public Entity createApplication(ApplicationSpec applicationSpec) {
-		Entity response;
-		try {
-			restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-			restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-			response = restTemplate.postForObject(
-					config.toFullUrl("v1/applications"), applicationSpec, Entity.class);
-		} catch (RestClientException e) {
-			response = new Entity();
-		}
-		return response;
+	public TaskSummary createApplication(String applicationSpec){
+		Response response = restApi.getApplicationApi().createFromForm(applicationSpec);
+		return BrooklynApi.getEntity(response, TaskSummary.class);
 	}
 	
-	public void deleteApplication(String id) {
+	public TaskSummary deleteApplication(String id) {
 		System.out.println("deleting id " + id);
-		restApi.getApplicationApi().delete(id);
-				
+		Response response = restApi.getApplicationApi().delete(id);
+		return BrooklynApi.getEntity(response, TaskSummary.class);	
 	}
 	
 	public Map<String, Object> getApplicationSensors(String application){
@@ -77,14 +56,15 @@ public class BrooklynRestAdmin {
 			Map<String, Object> sensors = new HashMap<String, Object>();
 			for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
 				String sensor = sensorSummary.getName();
-				sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor));
+				sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor, false));
 			}
 			result.put(s.getName(), sensors);
 		}
 		return result;
 	}
 
-	public void postBlueprint(String file) {
-		restApi.getCatalogApi().create(file);
+	public String postBlueprint(String file) {
+		Response response = restApi.getCatalogApi().create(file);
+		return BrooklynApi.getEntity(response, String.class);
 	}
 }
