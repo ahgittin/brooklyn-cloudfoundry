@@ -1,12 +1,8 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.cloudfoundry.community.servicebroker.brooklyn.model.EntitySensor;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.SensorSummary;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceBindingExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;

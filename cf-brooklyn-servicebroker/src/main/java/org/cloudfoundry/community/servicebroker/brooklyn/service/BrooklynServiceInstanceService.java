@@ -1,11 +1,8 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
@@ -17,10 +14,7 @@ import org.cloudfoundry.community.servicebroker.service.ServiceInstanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import brooklyn.rest.domain.EntitySpec;
 import brooklyn.rest.domain.TaskSummary;
-
-import com.google.common.collect.ImmutableSet;
 
 @Service
 public class BrooklynServiceInstanceService implements ServiceInstanceService {

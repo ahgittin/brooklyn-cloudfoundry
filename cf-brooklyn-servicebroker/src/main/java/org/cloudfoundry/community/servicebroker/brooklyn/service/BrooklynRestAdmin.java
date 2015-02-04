@@ -7,13 +7,8 @@ import java.util.Map;
 import javax.ws.rs.core.Response;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import brooklyn.rest.client.BrooklynApi;

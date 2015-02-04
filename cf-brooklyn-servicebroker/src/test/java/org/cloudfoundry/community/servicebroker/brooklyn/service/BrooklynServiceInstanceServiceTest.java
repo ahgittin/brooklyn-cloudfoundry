@@ -4,13 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.BrooklynConfiguration;
-import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.ApplicationSpec;
-import org.cloudfoundry.community.servicebroker.brooklyn.model.Entity;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
@@ -22,7 +18,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.client.RestTemplate;
+
+import brooklyn.rest.domain.TaskSummary;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = {BrooklynConfiguration.class})
@@ -35,7 +32,7 @@ public class BrooklynServiceInstanceServiceTest {
 	@Mock
 	private ServiceDefinition serviceDefinition;
 	@Mock 
-	private Entity entity;
+	private TaskSummary entity;
 	
 	private BrooklynServiceInstanceService service;
 
@@ -49,7 +46,7 @@ public class BrooklynServiceInstanceServiceTest {
 	public void newServiceInstanceCreatedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException {
 
-		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);
+		when(admin.createApplication(any(String.class))).thenReturn(entity);
 		
 		ServiceInstance instance = service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 		
@@ -60,7 +57,7 @@ public class BrooklynServiceInstanceServiceTest {
 	@Test(expected=ServiceInstanceExistsException.class)
 	public void serviceInstanceCreationFailsWithExistingInstance()  
 			throws ServiceInstanceExistsException, ServiceBrokerException {
-		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);		
+		when(admin.createApplication(any(String.class))).thenReturn(entity);		
 		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 	}
@@ -69,7 +66,7 @@ public class BrooklynServiceInstanceServiceTest {
 	public void serviceInstanceRetrievedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException{
 		
-		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);
+		when(admin.createApplication(any(String.class))).thenReturn(entity);
 		
 		assertNull(service.getServiceInstance(SVC_INST_ID));
 		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
@@ -80,7 +77,7 @@ public class BrooklynServiceInstanceServiceTest {
 	public void serviceInstanceDeletedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException {
 
-		when(admin.createApplication(any(ApplicationSpec.class))).thenReturn(entity);
+		when(admin.createApplication(any(String.class))).thenReturn(entity);
 		
 		ServiceInstance instance = service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 		assertNotNull(service.getServiceInstance(SVC_INST_ID));
