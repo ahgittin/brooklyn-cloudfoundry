@@ -16,7 +16,8 @@
 
 	<%
 	DBObject result = (DBObject)request.getAttribute("result");
-	out.print("<pre>" + pretty(result.toString()) + "</pre>");
+	if(result != null) out.print("<pre>" + pretty(result.toString()) + "</pre>");
+	out.print("<pre>" + System.getenv() + "</pre>");
 	%>
 
 </body>

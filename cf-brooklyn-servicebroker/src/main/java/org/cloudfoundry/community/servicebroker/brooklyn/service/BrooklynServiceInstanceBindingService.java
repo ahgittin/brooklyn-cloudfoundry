@@ -1,5 +1,6 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

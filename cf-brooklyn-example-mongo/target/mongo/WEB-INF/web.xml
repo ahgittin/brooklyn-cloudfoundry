@@ -3,11 +3,11 @@
  "http://java.sun.com/dtd/web-app_2_3.dtd" >
 
 <web-app>
-  <display-name>Archetype Created Web Application</display-name>
+  <display-name>Cloud Foundry Web Application with Brooklyn Managed MongoDB</display-name>
   
   <servlet>
   	<servlet-name>Mongo Example</servlet-name>
-  	<servlet-class>mongo.MongoServlet</servlet-class>
+  	<servlet-class>io.brooklyn.cf.example.mongo.MongoServlet</servlet-class>
   </servlet>
   
   <servlet-mapping>

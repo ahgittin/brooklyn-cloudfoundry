@@ -15,11 +15,9 @@
 	%>
 
 	<%
-	//DBObject result = (DBObject)request.getAttribute("result");
-	//out.print("<pre>" + pretty(result.toString()) + "</pre>");
-	String vcap = System.getenv("VCAP_SERVICES");
-	if (vcap != null) vcap = pretty(vcap);
-	out.print("<pre>" + vcap + "</pre>");
+	DBObject result = (DBObject)request.getAttribute("result");
+	if(result != null) out.print("<pre>" + pretty(result.toString()) + "</pre>");
+	out.print("<pre>" + System.getenv() + "</pre>");
 	%>
 
 </body>

@@ -1,8 +1,11 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.core.Response;
 
@@ -28,6 +31,12 @@ public class BrooklynRestAdmin {
 	private RestTemplate restTemplate;
 	@Autowired
 	private BrooklynApi restApi;
+	
+	private Set<String> sensorBlacklist = new HashSet<String>(Arrays.asList(
+			"download.url",
+			"expandedinstall.dir",
+			"install.dir"
+	));
 
 	
 	public List<CatalogItemSummary> getCatalogApplicaitons(){
@@ -56,6 +65,7 @@ public class BrooklynRestAdmin {
 			Map<String, Object> sensors = new HashMap<String, Object>();
 			for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
 				String sensor = sensorSummary.getName();
+				if(sensorBlacklist.contains(sensor)) continue;
 				sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor, false));
 			}
 			result.put(s.getName(), sensors);
