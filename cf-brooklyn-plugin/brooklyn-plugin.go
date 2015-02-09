@@ -25,25 +25,23 @@ type BrooklynPlugin struct{
 }
 
 func (c *BrooklynPlugin) readYAMLFile(path string) {
-	fmt.Println("Reading YAML")
+	//fmt.Println("Reading YAML")
 	file, err := os.Open(filepath.Clean(path))
-	if err != nil {
-		return
-	}
+	c.assertErrorIsNil(err)
 	defer file.Close()
 
 	yamlMap, err := c.parseManifest(file)
-	c.assert(err == nil, "")
+	c.assertErrorIsNil(err)
 	c.yamlMap = yamlMap
 }
 
 func (c *BrooklynPlugin) parseManifest(file io.Reader) (yamlMap generic.Map, err error) {
+	//fmt.Println("Parsing Manifest")
 	decoder := candiedyaml.NewDecoder(file)
 	yamlMap = generic.NewMap()
 	err = decoder.Decode(yamlMap)
-	if err != nil {
-		return
-	}
+	
+	c.assertErrorIsNil(err)
 
 	if !generic.IsMappable(yamlMap) {
 		err = errors.New(T("Invalid manifest. Expected a map"))
@@ -56,19 +54,20 @@ func (c *BrooklynPlugin) parseManifest(file io.Reader) (yamlMap generic.Map, err
 func (c *BrooklynPlugin) writeYAMLFile(yamlMap generic.Map, path string) {
 
 	fileToWrite, err := os.Create(path)
-	if err != nil {
-		println("Failed to open file for writing:", err.Error())
-		return
-	}
+	c.assertErrorIsNil(err)
 
 	encoder := candiedyaml.NewEncoder(fileToWrite)
 	err = encoder.Encode(yamlMap)
 
-	if err != nil {
-		return
-	}
+	c.assertErrorIsNil(err)
 
 	return
+}
+
+func (c *BrooklynPlugin) assertErrorIsNil(err error) {
+	if err != nil {
+		c.assert(false, "error not nil, "+err.Error())
+	}
 }
 
 func (c *BrooklynPlugin) assert(cond bool, message string) {
@@ -80,7 +79,7 @@ func (c *BrooklynPlugin) assert(cond bool, message string) {
 func (c *BrooklynPlugin) randomString(size int) string{
 	rb := make([]byte,size)
   	_, err := rand.Read(rb)
-	c.assert(err == nil, "")
+	c.assertErrorIsNil(err)
 	return base64.URLEncoding.EncodeToString(rb)
 }
 
@@ -116,16 +115,14 @@ func (c *BrooklynPlugin) createNewCatalogItem(name string, blueprintMap []interf
 	
 	broker, username, password := c.promptForBrokerCredentials()
 	brokerUrl, err := c.serviceBrokerUrl(broker)
-	c.assert(err == nil, "")
-	fmt.Println(brokerUrl)
+	c.assertErrorIsNil(err)
+	//fmt.Println(brokerUrl)
 	c.addCatalog(broker, username, password, tempFile)
 
 	c.cliConnection.CliCommand("update-service-broker", broker, username, password, brokerUrl)
 	c.cliConnection.CliCommand("enable-service-access", name)
 	err = os.Remove(tempFile)
-	if err != nil {
-		fmt.Println("PLUGIN ERROR: ", err)
-	}
+	c.assertErrorIsNil(err)
 }
 
 /*
@@ -134,18 +131,17 @@ func (c *BrooklynPlugin) createNewCatalogItem(name string, blueprintMap []interf
 	      instantiating new instances of services that are already running
 */
 func (c *BrooklynPlugin) push(args []string){
-	fmt.Println("Running the brooklyn command")
+	//fmt.Println("Running the brooklyn command")
 	// TODO if -f flag sets manifest use that instead
 		
 	c.readYAMLFile("manifest.yml")
 	
-	//fmt.Println(yamlMap)
 	//fmt.Println("getting brooklyn")
 	applications := c.yamlMap.Get("applications").([]interface{})
 	for _, app := range applications {
 		//fmt.Println("app...\n", app)
 		application, found := app.(map[interface{}]interface{})
-		c.assert(found, "")
+		c.assert(found, "Application not found.")
 		c.replaceBrooklynCreatingServices(application)
 	}
 	c.pushWith(args, "manifest.temp.yml")
@@ -154,16 +150,17 @@ func (c *BrooklynPlugin) push(args []string){
 func (c *BrooklynPlugin) pushWith(args []string, tempFile string) {
 	c.writeYAMLFile(c.yamlMap, tempFile)
 	_, err := c.cliConnection.CliCommand(append(args, "-f", tempFile)...)
-	c.assert(err == nil, "")
+	c.assertErrorIsNil(err)
 	err = os.Remove(tempFile)
-	c.assert(err == nil, "")
+	c.assertErrorIsNil(err)
 }
 
 func (c *BrooklynPlugin) replaceBrooklynCreatingServices(application map[interface{}]interface{}){
 	brooklyn, found := application["brooklyn"].([]interface{})
-	c.assert(found, "")
+	c.assert(found, "Brooklyn not found.")
 	// check to see if services section already exists
 	application["services"] = c.mergeServices(application, c.createAllServices(brooklyn))
+	//fmt.Println("\nmodified...", application)
 	delete(application, "brooklyn")
 	//fmt.Println("\nmodified...", application)
 }
@@ -173,16 +170,18 @@ func (c *BrooklynPlugin) createAllServices(brooklyn []interface{}) []string{
 	for _, brooklynApp := range brooklyn {
 		//fmt.Println("brooklyn app... \n", brooklynApp)
 		brooklynApplication, found := brooklynApp.(map[interface{}]interface{})
-		c.assert(found, "")
+		c.assert(found, "Expected Map.")
 		services = append(services, c.newService(brooklynApplication))	
 	}
+	//fmt.Println("finished creating services \n")
 	return services
 }
 func (c *BrooklynPlugin) newService(brooklynApplication map[interface{}]interface{}) string{
 	name, found := brooklynApplication["name"].(string)
-	c.assert(found, "")
+	c.assert(found, "Expected Name.")
 	location, found := brooklynApplication["location"].(string)
-	c.assert(found, "")
+	c.assert(found, "Expected Location")
+	//fmt.Println("creating service:",name, location)
 	c.createServices(brooklynApplication, name, location)
 	return name
 }
@@ -212,10 +211,30 @@ func (c *BrooklynPlugin) extractAndCreateService(brooklynApplication map[interfa
 	// If there is a services section then this is a blueprint
 	// and this should be extracted and sent as a catalog item 
 	blueprints, found := brooklynApplication["services"].([]interface{})
+	
+	// only do this if catalog doesn't contain it already
 	if found {
-		c.createNewCatalogItem(name, blueprints)
+		//fmt.Println("found catalog entry")
+		if exists := c.catalogItemExists(name); !exists {
+			c.createNewCatalogItem(name, blueprints)
+		}
 		c.cliConnection.CliCommand("create-service", name, location, name)
 	}
+}
+
+func (c *BrooklynPlugin) catalogItemExists(name string) bool {
+	services, err := c.cliConnection.CliCommandWithoutTerminalOutput("marketplace", "-s", name)
+	if err != nil {
+		return false
+	}
+	
+	for _, a := range services {
+		fields := strings.Fields(a)
+		if fields[0] == "OK" {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *BrooklynPlugin) serviceBrokerUrl(broker string) (string, error){
@@ -231,24 +250,24 @@ func (c *BrooklynPlugin) serviceBrokerUrl(broker string) (string, error){
 }
 
 func (c *BrooklynPlugin) addCatalog(broker, username, password, filePath string) {
-	fmt.Println("Adding Brooklyn catalog item...")
+	//fmt.Println("Adding Brooklyn catalog item...")
 	brokerUrl, err := c.serviceBrokerUrl(broker)
-	c.assert(err == nil, "No such broker")
+	c.assertErrorIsNil(err)
 	brooklynUrl, err := url.Parse(brokerUrl)
-	c.assert(err == nil, "")	
+	c.assertErrorIsNil(err)
 	brooklynUrl.Path = "create"
 	brooklynUrl.User = url.UserPassword(username, password)
 	file, err := os.Open(filepath.Clean(filePath))
-	c.assert(err == nil, "")
+	c.assertErrorIsNil(err)
 	defer file.Close()
 	
 	req, err := http.NewRequest("POST", brooklynUrl.String(), file)
-	c.assert(err == nil, "")
+	c.assertErrorIsNil(err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	
 	client := &http.Client{}
     resp, err := client.Do(req)
-    c.assert(err == nil, "")
+    c.assertErrorIsNil(err)
     defer resp.Body.Close()
 	if resp.Status != "200 OK" {
     	fmt.Println("response Status:", resp.Status)
@@ -319,7 +338,6 @@ func (c *BrooklynPlugin) GetMetadata() plugin.PluginMetadata {
 			plugin.Command{
 				Name:     "brooklyn",
 				HelpText: "Brooklyn plugin command's help text",
-
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
