@@ -11,4 +11,4 @@ applications:
     services: 
     - type: brooklyn.entity.nosql.mongodb.MongoDBServer
 #  services:
-#  - mysql
+#  - mongodb

@@ -19,9 +19,12 @@ import (
     "crypto/rand"
 )
 
-type BrooklynPlugin struct{}
+type BrooklynPlugin struct{
+	cliConnection plugin.CliConnection
+	yamlMap generic.Map
+}
 
-func (c *BrooklynPlugin) readYAMLFile(path string) (yamlMap generic.Map, err error) {
+func (c *BrooklynPlugin) readYAMLFile(path string) {
 	fmt.Println("Reading YAML")
 	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
@@ -29,12 +32,9 @@ func (c *BrooklynPlugin) readYAMLFile(path string) (yamlMap generic.Map, err err
 	}
 	defer file.Close()
 
-	yamlMap, err = c.parseManifest(file)
-	if err != nil {
-		return
-	}
-
-	return
+	yamlMap, err := c.parseManifest(file)
+	c.assert(err == nil, "")
+	c.yamlMap = yamlMap
 }
 
 func (c *BrooklynPlugin) parseManifest(file io.Reader) (yamlMap generic.Map, err error) {
@@ -95,7 +95,7 @@ func (c *BrooklynPlugin) promptForBrokerCredentials() (string, string, string){
 	return broker, username, password
 }
 
-func (c *BrooklynPlugin) createNewCatalogItem(cliConnection plugin.CliConnection, name string, blueprintMap []interface{}){
+func (c *BrooklynPlugin) createNewCatalogItem(name string, blueprintMap []interface{}){
 	yamlMap := generic.NewMap()
 	entry := map[string]string{
     	"id": c.randomString(8),
@@ -115,96 +115,111 @@ func (c *BrooklynPlugin) createNewCatalogItem(cliConnection plugin.CliConnection
 	c.writeYAMLFile(yamlMap, tempFile)
 	
 	broker, username, password := c.promptForBrokerCredentials()
-	brokerUrl, err := c.serviceBrokerUrl(cliConnection, broker)
+	brokerUrl, err := c.serviceBrokerUrl(broker)
 	c.assert(err == nil, "")
 	fmt.Println(brokerUrl)
-	c.addCatalog(cliConnection, broker, username, password, tempFile)
+	c.addCatalog(broker, username, password, tempFile)
 
-	cliConnection.CliCommand("update-service-broker", broker, username, password, brokerUrl)
-	cliConnection.CliCommand("enable-service-access", name)
+	c.cliConnection.CliCommand("update-service-broker", broker, username, password, brokerUrl)
+	c.cliConnection.CliCommand("enable-service-access", name)
 	err = os.Remove(tempFile)
 	if err != nil {
 		fmt.Println("PLUGIN ERROR: ", err)
 	}
 }
 
-func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string){
+/*
+    modify the application manifest before passing to to original command
+    TODO: We need to ensure that multiple calls to push do not keep 
+	      instantiating new instances of services that are already running
+*/
+func (c *BrooklynPlugin) push(args []string){
 	fmt.Println("Running the brooklyn command")
-		// modify the application manifest before passing to
-		// to original command
-					
-		// TODO if -f flag sets manifest use that instead
+	// TODO if -f flag sets manifest use that instead
 		
-		yamlMap, err := c.readYAMLFile("manifest.yml")
-		if err != nil {
-			fmt.Println("PLUGIN ERROR: ", err)
-		}
-		//fmt.Println(yamlMap)
-		fmt.Println("getting brooklyn")
-		// find the section that begins "brooklyn"
-		applications := yamlMap.Get("applications").([]interface{})
-
-		for _, app := range applications {
-			//fmt.Println("app...\n", app)
-			application, found := app.(map[interface{}]interface{})
-			c.assert(found, "")
-			brooklyn, found := application["brooklyn"].([]interface{})
-			c.assert(found, "")
-
-			services := []string{}
-			for _, brooklynApp := range brooklyn {
-				//fmt.Println("brooklyn app... \n", brooklynApp)
-				brooklynApplication, found := brooklynApp.(map[interface{}]interface{})
-				c.assert(found, "")
-				name, found := brooklynApplication["name"].(string)
-				c.assert(found, "")
-				location, found := brooklynApplication["location"].(string)
-				c.assert(found, "")
-				
-				// If there is a service section then this refers to an
-				// existing catalog entry.
-				service, found := brooklynApplication["service"].(string)
-				if found {
-					cliConnection.CliCommand("create-service", service, location, name)
-				} else {
-					// If there is a services section then this is a blueprint
-					// and this should be extracted and sent as a catalog item 
-					blueprints, found := brooklynApplication["services"].([]interface{})
-					if found {
-						c.createNewCatalogItem(cliConnection, name, blueprints)
-						cliConnection.CliCommand("create-service", name, location, name)
-					}
-				}
-				
-
-				services = append(services, name)
-			}
-			
-			// check to see if services section already exists
-			if oldServices, found := application["services"].([]interface {}); found {
-				for _, name := range oldServices {
-					//fmt.Println("found", name)
-    				services = append(services, name.(string))
-				}
-			}
-			application["services"] = services
-			delete(application, "brooklyn")
-			fmt.Println("\nmodified...", application)
-		}
-		tempFile := "manifest.temp.yml"
-		c.writeYAMLFile(yamlMap, tempFile)
-		_, err = cliConnection.CliCommand(append(args, "-f", tempFile)...)
-		if err != nil {
-			fmt.Println("ERROR: ", err)
-		}
-		err = os.Remove(tempFile)
-		if err != nil {
-			fmt.Println("PLUGIN ERROR: ", err)
-		}
+	c.readYAMLFile("manifest.yml")
+	
+	//fmt.Println(yamlMap)
+	//fmt.Println("getting brooklyn")
+	applications := c.yamlMap.Get("applications").([]interface{})
+	for _, app := range applications {
+		//fmt.Println("app...\n", app)
+		application, found := app.(map[interface{}]interface{})
+		c.assert(found, "")
+		c.replaceBrooklynCreatingServices(application)
+	}
+	c.pushWith(args, "manifest.temp.yml")
 }
 
-func (c *BrooklynPlugin) serviceBrokerUrl(cliConnection plugin.CliConnection, broker string) (string, error){
-	brokers, err := cliConnection.CliCommandWithoutTerminalOutput("service-brokers")
+func (c *BrooklynPlugin) pushWith(args []string, tempFile string) {
+	c.writeYAMLFile(c.yamlMap, tempFile)
+	_, err := c.cliConnection.CliCommand(append(args, "-f", tempFile)...)
+	c.assert(err == nil, "")
+	err = os.Remove(tempFile)
+	c.assert(err == nil, "")
+}
+
+func (c *BrooklynPlugin) replaceBrooklynCreatingServices(application map[interface{}]interface{}){
+	brooklyn, found := application["brooklyn"].([]interface{})
+	c.assert(found, "")
+	// check to see if services section already exists
+	application["services"] = c.mergeServices(application, c.createAllServices(brooklyn))
+	delete(application, "brooklyn")
+	//fmt.Println("\nmodified...", application)
+}
+
+func (c *BrooklynPlugin) createAllServices(brooklyn []interface{}) []string{
+	services := []string{}
+	for _, brooklynApp := range brooklyn {
+		//fmt.Println("brooklyn app... \n", brooklynApp)
+		brooklynApplication, found := brooklynApp.(map[interface{}]interface{})
+		c.assert(found, "")
+		services = append(services, c.newService(brooklynApplication))	
+	}
+	return services
+}
+func (c *BrooklynPlugin) newService(brooklynApplication map[interface{}]interface{}) string{
+	name, found := brooklynApplication["name"].(string)
+	c.assert(found, "")
+	location, found := brooklynApplication["location"].(string)
+	c.assert(found, "")
+	c.createServices(brooklynApplication, name, location)
+	return name
+}
+
+func (c *BrooklynPlugin) mergeServices(application map[interface{}]interface{}, services []string) []string {
+	if oldServices, found := application["services"].([]interface {}); found {
+		for _, name := range oldServices {
+			//fmt.Println("found", name)
+    		services = append(services, name.(string))
+		}
+	}
+	return services
+}
+
+func (c *BrooklynPlugin) createServices(brooklynApplication map[interface{}]interface{}, name, location string){
+	// If there is a service section then this refers to an
+	// existing catalog entry.
+	service, found := brooklynApplication["service"].(string)
+	if found {
+		c.cliConnection.CliCommand("create-service", service, location, name)
+	} else {
+		c.extractAndCreateService(brooklynApplication, name, location)
+	}
+}
+
+func (c *BrooklynPlugin) extractAndCreateService(brooklynApplication map[interface{}]interface{}, name, location string){
+	// If there is a services section then this is a blueprint
+	// and this should be extracted and sent as a catalog item 
+	blueprints, found := brooklynApplication["services"].([]interface{})
+	if found {
+		c.createNewCatalogItem(name, blueprints)
+		c.cliConnection.CliCommand("create-service", name, location, name)
+	}
+}
+
+func (c *BrooklynPlugin) serviceBrokerUrl(broker string) (string, error){
+	brokers, err := c.cliConnection.CliCommandWithoutTerminalOutput("service-brokers")
 	c.assert(err == nil, "")
 	for _, a := range brokers {
 		fields := strings.Fields(a)	
@@ -215,9 +230,9 @@ func (c *BrooklynPlugin) serviceBrokerUrl(cliConnection plugin.CliConnection, br
 	return "", errors.New("No such broker")
 }
 
-func (c *BrooklynPlugin) addCatalog(cliConnection plugin.CliConnection, broker, username, password, filePath string) {
+func (c *BrooklynPlugin) addCatalog(broker, username, password, filePath string) {
 	fmt.Println("Adding Brooklyn catalog item...")
-	brokerUrl, err := c.serviceBrokerUrl(cliConnection, broker)
+	brokerUrl, err := c.serviceBrokerUrl(broker)
 	c.assert(err == nil, "No such broker")
 	brooklynUrl, err := url.Parse(brokerUrl)
 	c.assert(err == nil, "")	
@@ -243,6 +258,34 @@ func (c *BrooklynPlugin) addCatalog(cliConnection plugin.CliConnection, broker, 
 	}
 }
 
+/* TODO: add delete catalog, but be careful:
+         Catalog items should not be deleted if there are running apps 
+		 which were created using the same item. During rebinding the 
+		 catalog item is used to reconstruct the entity.
+func (c *BrooklynPlugin) deleteCatalog(cliConnection plugin.CliConnection, broker, username, password, name, version string) {
+	fmt.Println("Deleting Brooklyn catalog item...")
+	brokerUrl, err := c.serviceBrokerUrl(cliConnection, broker)
+	c.assert(err == nil, "No such broker")
+	brooklynUrl, err := url.Parse(brokerUrl)
+	c.assert(err == nil, "")	
+	brooklynUrl.Path = "delete" + "/" + name + "/" + version
+	brooklynUrl.User = url.UserPassword(username, password)
+	
+	req, err := http.NewRequest("DELETE", brooklynUrl.String(), nil)
+	c.assert(err == nil, "")
+	client := &http.Client{}
+    resp, err := client.Do(req)
+    c.assert(err == nil, "")
+    defer resp.Body.Close()
+	if resp.Status != "200 OK" {
+    	fmt.Println("response Status:", resp.Status)
+    	fmt.Println("response Headers:", resp.Header)
+    	body, _ := ioutil.ReadAll(resp.Body)
+    	fmt.Println("response Body:", string(body))
+	}
+}
+*/
+
 
 
 func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
@@ -251,12 +294,13 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
             fmt.Println(r)
         }
     }()
+	c.cliConnection = cliConnection
 	switch args[1] {
 	case "push":
-		c.push(cliConnection, args[1:])
+		c.push(args[1:])
 	case "add-catalog":
 		c.assert(len(args) == 6, "incorrect number of arguments")
-		c.addCatalog(cliConnection, args[2], args[3], args[4], args[5])
+		c.addCatalog(args[2], args[3], args[4], args[5])
 		defer fmt.Println("Catalog item sucessfully added.")
 	}
 	fmt.Println("OK")
