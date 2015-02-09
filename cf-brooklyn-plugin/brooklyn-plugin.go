@@ -120,8 +120,8 @@ func (c *BrooklynPlugin) createNewCatalogItem(cliConnection plugin.CliConnection
 	fmt.Println(brokerUrl)
 	c.addCatalog(cliConnection, broker, username, password, tempFile)
 
-	cliConnection.CliCommandWithoutTerminalOutput("update-service-broker", broker, username, password, brokerUrl)
-	cliConnection.CliCommandWithoutTerminalOutput("enable-service-access", name)
+	cliConnection.CliCommand("update-service-broker", broker, username, password, brokerUrl)
+	cliConnection.CliCommand("enable-service-access", name)
 	err = os.Remove(tempFile)
 	if err != nil {
 		fmt.Println("PLUGIN ERROR: ", err)
@@ -164,15 +164,18 @@ func (c *BrooklynPlugin) push(cliConnection plugin.CliConnection, args []string)
 				// If there is a service section then this refers to an
 				// existing catalog entry.
 				service, found := brooklynApplication["service"].(string)
-				
-				// If there is a services section then this is a blueprint
-				// and this should be extracted and sent as a catalog item 
-				blueprints, found := brooklynApplication["services"].([]interface{})
 				if found {
-					c.createNewCatalogItem(cliConnection, name, blueprints)
+					cliConnection.CliCommand("create-service", service, location, name)
+				} else {
+					// If there is a services section then this is a blueprint
+					// and this should be extracted and sent as a catalog item 
+					blueprints, found := brooklynApplication["services"].([]interface{})
+					if found {
+						c.createNewCatalogItem(cliConnection, name, blueprints)
+						cliConnection.CliCommand("create-service", name, location, name)
+					}
 				}
 				
-				cliConnection.CliCommandWithoutTerminalOutput("create-service", service, location, name)
 
 				services = append(services, name)
 			}
