@@ -250,21 +250,33 @@ func (c *BrooklynPlugin) serviceBrokerUrl(broker string) (string, error){
 }
 
 func (c *BrooklynPlugin) addCatalog(broker, username, password, filePath string) {
-	//fmt.Println("Adding Brooklyn catalog item...")
-	brokerUrl, err := c.serviceBrokerUrl(broker)
-	c.assertErrorIsNil(err)
-	brooklynUrl, err := url.Parse(brokerUrl)
-	c.assertErrorIsNil(err)
-	brooklynUrl.Path = "create"
-	brooklynUrl.User = url.UserPassword(username, password)
+	fmt.Println("Adding Brooklyn catalog item...")
+	
 	file, err := os.Open(filepath.Clean(filePath))
 	c.assertErrorIsNil(err)
 	defer file.Close()
 	
-	req, err := http.NewRequest("POST", brooklynUrl.String(), file)
+	req, err := http.NewRequest("POST", c.createRestCallUrlString(broker, username, password, "create"), file)
 	c.assertErrorIsNil(err)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	
+	c.sendRequest(req)
+}
+
+/*  Be careful:
+    Catalog items should not be deleted if there are running apps 
+    which were created using the same item. During rebinding the 
+	catalog item is used to reconstruct the entity.
+*/
+func (c *BrooklynPlugin) deleteCatalog(broker, username, password, name, version string) {
+	fmt.Println("Deleting Brooklyn catalog item...")
+	req, err := http.NewRequest("DELETE", 
+	    c.createRestCallUrlString(broker, username, password, "delete/" +name+ "/" + version + "/"), 
+		nil)
+	c.assertErrorIsNil(err)
+	c.sendRequest(req)
+}
+
+func (c *BrooklynPlugin) sendRequest(req *http.Request){
 	client := &http.Client{}
     resp, err := client.Do(req)
     c.assertErrorIsNil(err)
@@ -277,35 +289,15 @@ func (c *BrooklynPlugin) addCatalog(broker, username, password, filePath string)
 	}
 }
 
-/* TODO: add delete catalog, but be careful:
-         Catalog items should not be deleted if there are running apps 
-		 which were created using the same item. During rebinding the 
-		 catalog item is used to reconstruct the entity.
-func (c *BrooklynPlugin) deleteCatalog(cliConnection plugin.CliConnection, broker, username, password, name, version string) {
-	fmt.Println("Deleting Brooklyn catalog item...")
-	brokerUrl, err := c.serviceBrokerUrl(cliConnection, broker)
+func (c *BrooklynPlugin) createRestCallUrlString(broker, username, password, path string) string{
+	brokerUrl, err := c.serviceBrokerUrl(broker)
 	c.assert(err == nil, "No such broker")
 	brooklynUrl, err := url.Parse(brokerUrl)
 	c.assert(err == nil, "")	
-	brooklynUrl.Path = "delete" + "/" + name + "/" + version
+	brooklynUrl.Path = path
 	brooklynUrl.User = url.UserPassword(username, password)
-	
-	req, err := http.NewRequest("DELETE", brooklynUrl.String(), nil)
-	c.assert(err == nil, "")
-	client := &http.Client{}
-    resp, err := client.Do(req)
-    c.assert(err == nil, "")
-    defer resp.Body.Close()
-	if resp.Status != "200 OK" {
-    	fmt.Println("response Status:", resp.Status)
-    	fmt.Println("response Headers:", resp.Header)
-    	body, _ := ioutil.ReadAll(resp.Body)
-    	fmt.Println("response Body:", string(body))
-	}
+	return brooklynUrl.String()
 }
-*/
-
-
 
 func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	defer func() {
@@ -321,6 +313,9 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		c.assert(len(args) == 6, "incorrect number of arguments")
 		c.addCatalog(args[2], args[3], args[4], args[5])
 		defer fmt.Println("Catalog item sucessfully added.")
+	case "delete-catalog":
+		c.assert(len(args) == 7, "incorrect number of arguments")
+		c.deleteCatalog(args[2], args[3], args[4], args[5], args[6])
 	}
 	fmt.Println("OK")
 	
