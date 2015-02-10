@@ -85,4 +85,8 @@ public class BrooklynRestAdmin {
 		Response response = restApi.getCatalogApi().create(file);
 		return BrooklynApi.getEntity(response, String.class);
 	}
+
+	public void deleteCatalogEntry(String name, String version) throws Exception {
+		restApi.getCatalogApi().deleteEntity(name, version);
+	}
 }
