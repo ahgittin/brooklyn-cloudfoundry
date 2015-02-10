@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 
 import brooklyn.rest.client.BrooklynApi;
 import brooklyn.rest.domain.CatalogItemSummary;
+import brooklyn.rest.domain.EffectorSummary;
 import brooklyn.rest.domain.EntitySummary;
 import brooklyn.rest.domain.LocationSummary;
 import brooklyn.rest.domain.TaskSummary;
@@ -89,4 +90,17 @@ public class BrooklynRestAdmin {
 	public void deleteCatalogEntry(String name, String version) throws Exception {
 		restApi.getCatalogApi().deleteEntity(name, version);
 	}
+	
+	public void invokeEffector(String application, String entity, String effector){
+		// TODO Complete these params
+		restApi.getEffectorApi().invoke(application, entity, effector, "", null);
+	}
+
+	public List<EffectorSummary> getEffectors(String application) {
+		// TODO make this call recursively
+		String entityToken = "";
+		restApi.getEntityApi().list(application);
+		return restApi.getEffectorApi().list(application, entityToken);
+	}
+
 }
