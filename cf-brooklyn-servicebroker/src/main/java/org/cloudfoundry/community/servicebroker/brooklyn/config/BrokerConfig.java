@@ -22,11 +22,6 @@ public class BrokerConfig {
 	}
 	
 	@Bean
-	public RestTemplate restTemplate(){
-		return new RestTemplate();
-	}
-	
-	@Bean
 	public BrooklynApi restApi(){
 		return new BrooklynApi(config.toFullUrl());
 	}

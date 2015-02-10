@@ -16,19 +16,14 @@ import org.springframework.web.client.RestTemplate;
 
 import brooklyn.rest.client.BrooklynApi;
 import brooklyn.rest.domain.CatalogItemSummary;
+import brooklyn.rest.domain.EntitySummary;
 import brooklyn.rest.domain.LocationSummary;
 import brooklyn.rest.domain.TaskSummary;
 
 @Service
 public class BrooklynRestAdmin {
 	
-	// TODO: This class would be simpler if it used the Brooklyn client to access the
-	//       the REST api.
-	
-	@Autowired
-	private BrooklynConfig config;
-	@Autowired
-	private RestTemplate restTemplate;
+
 	@Autowired
 	private BrooklynApi restApi;
 	
@@ -59,18 +54,31 @@ public class BrooklynRestAdmin {
 	}
 	
 	public Map<String, Object> getApplicationSensors(String application){
+		return getApplicationSensors(application, restApi.getEntityApi().list(application));
+	}
+	
+	private Map<String, Object> getApplicationSensors(String application, List<EntitySummary> entities){
 		Map<String, Object> result = new HashMap<String, Object>();
-		for (brooklyn.rest.domain.EntitySummary s : restApi.getEntityApi().list(application)) {
+		for (brooklyn.rest.domain.EntitySummary s : entities) {
 			String entity = s.getId();
-			Map<String, Object> sensors = new HashMap<String, Object>();
-			for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
-				String sensor = sensorSummary.getName();
-				if(sensorBlacklist.contains(sensor)) continue;
-				sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor, false));
-			}
+			Map<String, Object> sensors = getSensors(application, entity);
+			Map<String, Object> childSensors = getApplicationSensors(
+					application,
+					restApi.getEntityApi().getChildren(application, entity));
+			sensors.put("children", childSensors);
 			result.put(s.getName(), sensors);
 		}
 		return result;
+	}
+	
+	private Map<String, Object> getSensors(String application, String entity){
+		Map<String, Object> sensors = new HashMap<String, Object>();
+		for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
+			String sensor = sensorSummary.getName();
+			if(sensorBlacklist.contains(sensor)) continue;
+			sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor, false));
+		}	
+		return sensors;
 	}
 
 	public String postBlueprint(String file) {
