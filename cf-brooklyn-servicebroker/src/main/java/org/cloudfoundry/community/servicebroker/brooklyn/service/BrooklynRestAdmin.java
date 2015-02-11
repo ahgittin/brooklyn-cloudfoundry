@@ -10,6 +10,7 @@ import java.util.Set;
 import javax.ws.rs.core.Response;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -95,12 +96,32 @@ public class BrooklynRestAdmin {
 		// TODO Complete these params
 		restApi.getEffectorApi().invoke(application, entity, effector, "", null);
 	}
+	
+	public Map<String, Object> getApplicationEffectors(String application){
+		return getApplicationEffectors(application, restApi.getEntityApi().list(application));
+	}
 
-	public List<EffectorSummary> getEffectors(String application) {
-		// TODO make this call recursively
-		String entityToken = "";
-		restApi.getEntityApi().list(application);
-		return restApi.getEffectorApi().list(application, entityToken);
+	public Map<String, Object> getApplicationEffectors(String application, List<EntitySummary> entities) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (EntitySummary s : entities) {
+			String entity = s.getId();
+			Map<String, Object> effectors = getEffectors(application, entity);
+			Map<String, Object> childEntities = getApplicationEffectors(
+					application,
+					restApi.getEntityApi().getChildren(application, entity));
+			effectors.put("children", childEntities);
+			result.put(s.getName(), effectors);
+		}
+		return result;
+		
+	}
+
+	private Map<String, Object> getEffectors(String application, String entity) {
+		Map<String, Object> effectors = new HashMap<String, Object>();
+		for (EffectorSummary effectorSummary : restApi.getEffectorApi().list(application, entity)) {
+			effectors.put(entity, effectorSummary);
+		}	
+		return effectors;
 	}
 
 }

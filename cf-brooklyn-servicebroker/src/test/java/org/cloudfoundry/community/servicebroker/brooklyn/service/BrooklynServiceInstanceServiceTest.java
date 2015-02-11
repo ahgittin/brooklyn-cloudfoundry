@@ -7,6 +7,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.BrooklynConfiguration;
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
@@ -39,7 +40,7 @@ public class BrooklynServiceInstanceServiceTest {
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		service = new BrooklynServiceInstanceService(admin);
+		service = new BrooklynServiceInstanceService(admin, BrooklynServiceInstanceRepository.INSTANCE);
 	}
 	
 	@Test

@@ -3,6 +3,7 @@ package org.cloudfoundry.community.servicebroker.brooklyn.service;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceDoesNotExistException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
@@ -19,13 +20,14 @@ import brooklyn.rest.domain.TaskSummary;
 @Service
 public class BrooklynServiceInstanceService implements ServiceInstanceService {
 
-	private Map<String, ServiceInstance> repository = new ConcurrentHashMap<String, ServiceInstance>();
 
 	private BrooklynRestAdmin admin;
+	private BrooklynServiceInstanceRepository repository;
 
 	@Autowired
-	public BrooklynServiceInstanceService(BrooklynRestAdmin admin) {
+	public BrooklynServiceInstanceService(BrooklynRestAdmin admin, BrooklynServiceInstanceRepository repository) {
 		this.admin = admin;
+		this.repository = repository;
 	}
 
 	@Override
@@ -39,7 +41,12 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 		if (instance != null) {
 			throw new ServiceInstanceExistsException(instance);
 		}
-		
+		System.out.println("-- creating service --");
+		System.out.println(serviceInstanceId);
+		System.out.println(planId);
+		System.out.println(organizationGuid);
+		System.out.println(spaceGuid);
+		System.out.println("----------------------");
 
 		//ApplicationSpec applicationSpec = new ApplicationSpec();
 		String location = "localhost"; // default
@@ -63,6 +70,7 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 				taskSummary.getEntityId(),//response.getEntityId(), 
 				planId, organizationGuid, spaceGuid,
 				null);
+		
 		repository.put(serviceInstanceId, instance);
 		return instance;
 	}

@@ -1,11 +1,15 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.controller;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
 
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.cloudfoundry.community.servicebroker.brooklyn.service.BrooklynRestAdmin;
+import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,10 +24,12 @@ import brooklyn.util.stream.Streams;
 public class BrooklynController {
 	
 	private BrooklynRestAdmin admin;
+	private BrooklynServiceInstanceRepository instanceRepository;
 
 	@Autowired
-	public BrooklynController(BrooklynRestAdmin admin) {
+	public BrooklynController(BrooklynRestAdmin admin, BrooklynServiceInstanceRepository instanceRepository) {
 		this.admin = admin;
+		this.instanceRepository = instanceRepository;
 	}
 	
 	@RequestMapping(value = "/create", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED)
@@ -47,8 +53,14 @@ public class BrooklynController {
 	}
 	
 	@RequestMapping(value = "/effectors/{application}", method = RequestMethod.GET)
-	public @ResponseBody List<EffectorSummary> effectors(@PathVariable("application") String application){
-		return admin.getEffectors(application);
+	public @ResponseBody Map<String, Object> effectors(@PathVariable("application") String application){
+		ServiceInstance instance = instanceRepository.get(application);
+		if (instance != null) {
+			String appId = instance.getServiceDefinitionId();
+			return admin.getApplicationEffectors(appId);
+		}
+		System.out.println(instanceRepository);
+		return Collections.emptyMap();
 	}
 
 }
