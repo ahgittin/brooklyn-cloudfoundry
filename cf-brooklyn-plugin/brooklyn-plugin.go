@@ -7,6 +7,7 @@ import (
 	. "github.com/cloudfoundry/cli/cf/i18n"
 	"github.com/cloudfoundry/cli/generic"
 	"github.com/cloudfoundry/cli/plugin"
+	"github.com/cloudfoundry/cli/cf/terminal"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,9 +18,11 @@ import (
 	"net/url"
 	"encoding/base64"
     "crypto/rand"
+	"encoding/json"
 )
 
 type BrooklynPlugin struct{
+	ui         terminal.UI
 	cliConnection plugin.CliConnection
 	yamlMap generic.Map
 }
@@ -276,17 +279,82 @@ func (c *BrooklynPlugin) deleteCatalog(broker, username, password, name, version
 	c.sendRequest(req)
 }
 
-func (c *BrooklynPlugin) sendRequest(req *http.Request){
+func (c *BrooklynPlugin) listEffectors(broker, username, password, service string) {
+	guid, err := c.cliConnection.CliCommandWithoutTerminalOutput("service", service, "--guid")
+	url := c.createRestCallUrlString(broker, username, password, "effectors/" + guid[0])
+	req, err := http.NewRequest("GET", url, nil)
+	c.assertErrorIsNil(err)
+	body, _ := c.sendRequest(req)
+	//fmt.Println(string(body))
+	var effectors map[string]interface{}
+	err = json.Unmarshal(body, &effectors)
+	c.assertErrorIsNil(err)
+	
+	c.outputChildren(0, effectors)
+	
+}
+
+func (c *BrooklynPlugin) outputChildren(indent int, effectors map[string]interface{}){
+	for k, v := range effectors {
+		c.printIndent(indent)
+		fmt.Println(terminal.ColorizeBold(k, 32))
+		c.outputEffectors(indent + 1, v.(map[string]interface{}))
+	}
+}
+
+func (c *BrooklynPlugin) outputEffectors(indent int, effectors map[string]interface{}){
+	children := effectors["children"]
+	for k, v := range effectors {
+		if k != "children" {
+			c.printIndent(indent)
+			c.printEffectorDescription(indent, terminal.ColorizeBold(k, 31), v.(map[string]interface{}))
+		}
+	}
+	if children != nil {
+		c.outputChildren(indent, children.(map[string]interface{}))
+	}
+}
+
+func (c *BrooklynPlugin) printEffectorDescription(indent int, effectorName string,  effector map[string]interface{}){
+	params := effector["parameters"].([]interface {})
+	
+	fmt.Printf("%-30s %s\n", effectorName, effector["description"].(string))
+	
+	if len(params) != 0 {
+		
+		c.printIndent(indent + 1)
+		fmt.Println("parameters: ")
+		for _, k := range params {
+			c.printParameterDescription(indent + 1, k.(map[string]interface{}))
+		}
+	}
+	
+}
+
+func (c *BrooklynPlugin) printParameterDescription(indent int, parameter map[string]interface{}) {
+	
+	c.printIndent(indent)
+	fmt.Printf("%-17s %-s\n", parameter["name"].(string), parameter["description"].(string))
+}	
+
+func (c *BrooklynPlugin) printIndent(indent int){
+	for i := 0; i < indent; i++ {
+		fmt.Print("  ")
+	}
+}	
+
+func (c *BrooklynPlugin) sendRequest(req *http.Request) ([]byte, error){
 	client := &http.Client{}
     resp, err := client.Do(req)
     c.assertErrorIsNil(err)
     defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
 	if resp.Status != "200 OK" {
     	fmt.Println("response Status:", resp.Status)
     	fmt.Println("response Headers:", resp.Header)
-    	body, _ := ioutil.ReadAll(resp.Body)
     	fmt.Println("response Body:", string(body))
 	}
+	return body, err
 }
 
 func (c *BrooklynPlugin) createRestCallUrlString(broker, username, password, path string) string{
@@ -305,6 +373,7 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
             fmt.Println(r)
         }
     }()
+	c.ui = terminal.NewUI(os.Stdin, terminal.NewTeePrinter())
 	c.cliConnection = cliConnection
 	switch args[1] {
 	case "push":
@@ -316,6 +385,9 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	case "delete-catalog":
 		c.assert(len(args) == 7, "incorrect number of arguments")
 		c.deleteCatalog(args[2], args[3], args[4], args[5], args[6])
+	case "effectors":
+		c.assert(len(args) == 6, "incorrect number of arguments")
+		c.listEffectors(args[2], args[3], args[4], args[5])
 	}
 	fmt.Println("OK")
 	
