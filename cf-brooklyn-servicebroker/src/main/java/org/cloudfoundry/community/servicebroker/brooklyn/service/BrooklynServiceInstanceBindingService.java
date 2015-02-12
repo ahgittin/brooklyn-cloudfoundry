@@ -1,8 +1,8 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceBindingRepository;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceBindingExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
@@ -15,13 +15,14 @@ import org.springframework.stereotype.Service;
 public class BrooklynServiceInstanceBindingService implements
 		ServiceInstanceBindingService {
 
-	private Map<String, ServiceInstanceBinding> repository = new ConcurrentHashMap<String, ServiceInstanceBinding>();
 
 	private BrooklynRestAdmin admin;
+	private BrooklynServiceInstanceBindingRepository repository;
 
 	@Autowired
-	public BrooklynServiceInstanceBindingService(BrooklynRestAdmin admin) {
+	public BrooklynServiceInstanceBindingService(BrooklynRestAdmin admin, BrooklynServiceInstanceBindingRepository repository) {
 		this.admin = admin;
+		this.repository = repository;
 
 	}
 

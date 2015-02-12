@@ -10,12 +10,14 @@ import java.util.Set;
 import javax.ws.rs.core.Response;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import brooklyn.rest.client.BrooklynApi;
 import brooklyn.rest.domain.CatalogItemSummary;
+import brooklyn.rest.domain.EffectorSummary;
 import brooklyn.rest.domain.EntitySummary;
 import brooklyn.rest.domain.LocationSummary;
 import brooklyn.rest.domain.TaskSummary;
@@ -89,4 +91,37 @@ public class BrooklynRestAdmin {
 	public void deleteCatalogEntry(String name, String version) throws Exception {
 		restApi.getCatalogApi().deleteEntity(name, version);
 	}
+	
+	public void invokeEffector(String application, String entity, String effector){
+		// TODO Complete these params
+		restApi.getEffectorApi().invoke(application, entity, effector, "", null);
+	}
+	
+	public Map<String, Object> getApplicationEffectors(String application){
+		return getApplicationEffectors(application, restApi.getEntityApi().list(application));
+	}
+
+	public Map<String, Object> getApplicationEffectors(String application, List<EntitySummary> entities) {
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (EntitySummary s : entities) {
+			String entity = s.getId();
+			Map<String, Object> effectors = getEffectors(application, entity);
+			Map<String, Object> childEntities = getApplicationEffectors(
+					application,
+					restApi.getEntityApi().getChildren(application, entity));
+			effectors.put("children", childEntities);
+			result.put(s.getName(), effectors);
+		}
+		return result;
+		
+	}
+
+	private Map<String, Object> getEffectors(String application, String entity) {
+		Map<String, Object> effectors = new HashMap<String, Object>();
+		for (EffectorSummary effectorSummary : restApi.getEffectorApi().list(application, entity)) {
+			effectors.put(entity, effectorSummary);
+		}	
+		return effectors;
+	}
+
 }

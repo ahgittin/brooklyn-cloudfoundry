@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 
 import org.cloudfoundry.community.servicebroker.brooklyn.BrooklynConfiguration;
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceBindingRepository;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceBindingExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
@@ -37,7 +38,7 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		bindingService = new BrooklynServiceInstanceBindingService(admin);
+		bindingService = new BrooklynServiceInstanceBindingService(admin, BrooklynServiceInstanceBindingRepository.INSTANCE);
 	}
 	
 	@Test

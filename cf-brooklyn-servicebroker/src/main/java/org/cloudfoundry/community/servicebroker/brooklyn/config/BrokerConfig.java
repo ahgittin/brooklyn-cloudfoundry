@@ -1,5 +1,7 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.config;
 
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceBindingRepository;
+import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.cloudfoundry.community.servicebroker.model.BrokerApiVersion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +18,7 @@ public class BrokerConfig {
 	@Autowired
 	private BrooklynConfig config;
 
+
 	@Bean
 	public BrokerApiVersion brokerApiVersion() {
 	    return new BrokerApiVersion();
@@ -24,6 +27,16 @@ public class BrokerConfig {
 	@Bean
 	public BrooklynApi restApi(){
 		return new BrooklynApi(config.toFullUrl());
+	}
+	
+	@Bean
+	public BrooklynServiceInstanceBindingRepository bindingRepository(){
+		return BrooklynServiceInstanceBindingRepository.INSTANCE;
+	}
+	
+	@Bean
+	public BrooklynServiceInstanceRepository instanceRepository(){
+		return BrooklynServiceInstanceRepository.INSTANCE;
 	}
 	
 }
