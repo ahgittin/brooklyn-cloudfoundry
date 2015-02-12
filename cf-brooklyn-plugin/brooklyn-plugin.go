@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/cloudfoundry-incubator/candiedyaml"
 	"github.com/cloudfoundry/cli/cf/errors"
@@ -289,16 +290,30 @@ func (c *BrooklynPlugin) listEffectors(broker, username, password, service strin
 	var effectors map[string]interface{}
 	err = json.Unmarshal(body, &effectors)
 	c.assertErrorIsNil(err)
-	
+	fmt.Println(terminal.ColorizeBold(service, 32))
+	for i := 0; i < len(service); i++ {
+		fmt.Print(terminal.ColorizeBold("-", 32))
+	} 
+	fmt.Println()
 	c.outputChildren(0, effectors)
 	
 }
 
 func (c *BrooklynPlugin) outputChildren(indent int, effectors map[string]interface{}){
-	for k, v := range effectors {
-		c.printIndent(indent)
-		fmt.Println(terminal.ColorizeBold(k, 32))
-		c.outputEffectors(indent + 1, v.(map[string]interface{}))
+	children := effectors["children"]
+	for k, v := range effectors {	
+		if k != "children" {
+			c.printIndent(indent)
+			if indent == 0{
+				fmt.Print(terminal.ColorizeBold("Application:", 32))
+			}
+			fmt.Println(terminal.ColorizeBold(k, 32))
+			c.outputEffectors(indent + 1, v.(map[string]interface{}))
+		}
+	}
+	
+	if children != nil {
+		c.outputChildren(indent + 1, children.(map[string]interface{}))
 	}
 }
 
@@ -367,6 +382,32 @@ func (c *BrooklynPlugin) createRestCallUrlString(broker, username, password, pat
 	return brooklynUrl.String()
 }
 
+func (c *BrooklynPlugin) invokeEffector(broker, username, password, service, effector string, params []string) {
+	guid, err := c.cliConnection.CliCommandWithoutTerminalOutput("service", service, "--guid")
+	c.assertErrorIsNil(err)
+	c.assert(strings.Contains(effector, ":"), "invalid effector format")
+	split := strings.Split(effector, ":")
+	path := "invoke/" + guid[0] + "/" + split[0] + "/" + split[1]
+	fmt.Println("Invoking effector", terminal.ColorizeBold(effector, 36))
+	
+	// TODO make map from params
+	m := make(map[string]string)
+	for i := 0; i < len(params); i = i + 2 {
+		c.assert(strings.HasPrefix(params[i], "--"), "invalid parameter format")
+		k := strings.TrimPrefix(params[i], "--")
+		v := params[i + 1]
+		
+		m[k] = v
+	}
+	post, err := json.Marshal(m)
+	c.assertErrorIsNil(err)
+	req, err := http.NewRequest("POST", c.createRestCallUrlString(broker, username, password, path), bytes.NewBuffer(post))
+	req.Header.Set("Content-Type", "application/json")
+	c.assertErrorIsNil(err)
+	body, _ := c.sendRequest(req)
+	fmt.Println(string(body))
+}
+
 func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	defer func() {
         if r := recover(); r != nil {
@@ -388,8 +429,11 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	case "effectors":
 		c.assert(len(args) == 6, "incorrect number of arguments")
 		c.listEffectors(args[2], args[3], args[4], args[5])
+	case "invoke":
+		c.assert(len(args) >= 7, "incorrect number of arguments")
+		c.invokeEffector(args[2], args[3], args[4], args[5], args[6], args[7:])
 	}
-	fmt.Println("OK")
+	fmt.Println(terminal.ColorizeBold("OK", 32))
 	
 }
 
