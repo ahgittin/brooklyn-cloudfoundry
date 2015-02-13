@@ -61,7 +61,7 @@ public class BrooklynRestAdmin {
 	
 	private Map<String, Object> getApplicationSensors(String application, List<EntitySummary> entities){
 		Map<String, Object> result = new HashMap<String, Object>();
-		for (brooklyn.rest.domain.EntitySummary s : entities) {
+		for (EntitySummary s : entities) {
 			String entity = s.getId();
 			Map<String, Object> sensors = getSensors(application, entity);
 			Map<String, Object> childSensors = getApplicationSensors(
@@ -92,13 +92,18 @@ public class BrooklynRestAdmin {
 		restApi.getCatalogApi().deleteEntity(name, version);
 	}
 	
-	public void invokeEffector(String application, String entity, String effector){
+	public String invokeEffector(String application, String entity, String effector, Map<String, Object> params){
 		// TODO Complete these params
-		restApi.getEffectorApi().invoke(application, entity, effector, "", null);
+		Response response = restApi.getEffectorApi().invoke(application, entity, effector, "", params);
+		return BrooklynApi.getEntity(response, String.class);
 	}
 	
 	public Map<String, Object> getApplicationEffectors(String application){
-		return getApplicationEffectors(application, restApi.getEntityApi().list(application));
+		Map<String, Object> result = new HashMap<String, Object>();
+		Map<String, Object> effectors = getEffectors(application, application);
+		result.put("children",  getApplicationEffectors(application, restApi.getEntityApi().list(application)));
+		result.put(application, effectors);
+		return result;
 	}
 
 	public Map<String, Object> getApplicationEffectors(String application, List<EntitySummary> entities) {
@@ -119,7 +124,7 @@ public class BrooklynRestAdmin {
 	private Map<String, Object> getEffectors(String application, String entity) {
 		Map<String, Object> effectors = new HashMap<String, Object>();
 		for (EffectorSummary effectorSummary : restApi.getEffectorApi().list(application, entity)) {
-			effectors.put(entity, effectorSummary);
+			effectors.put(entity +":"+ effectorSummary.getName(), effectorSummary);
 		}	
 		return effectors;
 	}
