@@ -280,6 +280,24 @@ func (c *BrooklynPlugin) deleteCatalog(broker, username, password, name, version
 	c.sendRequest(req)
 }
 
+func (c *BrooklynPlugin) listSensors(broker, username, password, service string) {
+	guid, err := c.cliConnection.CliCommandWithoutTerminalOutput("service", service, "--guid")
+	url := c.createRestCallUrlString(broker, username, password, "sensors/" + guid[0])
+	req, err := http.NewRequest("GET", url, nil)
+	c.assertErrorIsNil(err)
+	body, _ := c.sendRequest(req)
+	fmt.Println(string(body))
+	var sensors map[string]interface{}
+	err = json.Unmarshal(body, &sensors)
+	c.assertErrorIsNil(err)
+	fmt.Println(terminal.ColorizeBold(service, 32))
+	for i := 0; i < len(service); i++ {
+		fmt.Print(terminal.ColorizeBold("-", 32))
+	} 
+	fmt.Println()
+	c.outputSensorChildren(0, sensors)
+}
+
 func (c *BrooklynPlugin) listEffectors(broker, username, password, service string) {
 	guid, err := c.cliConnection.CliCommandWithoutTerminalOutput("service", service, "--guid")
 	url := c.createRestCallUrlString(broker, username, password, "effectors/" + guid[0])
@@ -297,6 +315,17 @@ func (c *BrooklynPlugin) listEffectors(broker, username, password, service strin
 	fmt.Println()
 	c.outputChildren(0, effectors)
 	
+}
+
+func (c *BrooklynPlugin) outputSensorChildren(indent int, effectors map[string]interface{}){
+	for k, v := range effectors {	
+		c.printIndent(indent)
+		if indent == 0{
+			fmt.Print(terminal.ColorizeBold("Entity:", 32))
+		}
+		fmt.Println(terminal.ColorizeBold(k, 32))
+		c.outputSensors(indent + 1, v.(map[string]interface{}))
+	}
 }
 
 func (c *BrooklynPlugin) outputChildren(indent int, effectors map[string]interface{}){
@@ -327,6 +356,25 @@ func (c *BrooklynPlugin) outputEffectors(indent int, effectors map[string]interf
 	}
 	if children != nil {
 		c.outputChildren(indent, children.(map[string]interface{}))
+	}
+}
+
+func (c *BrooklynPlugin) outputSensors(indent int, sensors map[string]interface{}){
+	children := sensors["children"]
+	for k, v := range sensors {
+		if k != "children" {
+			c.printIndent(indent)
+			switch v.(type) {
+				default:
+					fmt.Println(k,":", v)
+				case map[string]interface{}:
+				    fmt.Println(k)
+					c.outputSensors(indent + 1, v.(map[string]interface{}))
+			}
+		}
+	}
+	if children != nil {
+		c.outputSensorChildren(indent + 1, children.(map[string]interface{}))
 	}
 }
 
@@ -432,6 +480,9 @@ func (c *BrooklynPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	case "invoke":
 		c.assert(len(args) >= 7, "incorrect number of arguments")
 		c.invokeEffector(args[2], args[3], args[4], args[5], args[6], args[7:])
+	case "sensors":
+		c.assert(len(args) == 6, "incorrect number of arguments")
+		c.listSensors(args[2], args[3], args[4], args[5])
 	}
 	fmt.Println(terminal.ColorizeBold("OK", 32))
 	
