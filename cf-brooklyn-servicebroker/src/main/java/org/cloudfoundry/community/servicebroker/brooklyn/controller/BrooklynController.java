@@ -72,5 +72,16 @@ public class BrooklynController {
 		System.out.println(instanceRepository);
 		return Collections.emptyMap();
 	}
+	
+	@RequestMapping(value = "/sensors/{application}", method = RequestMethod.GET)
+	public @ResponseBody Map<String, Object> sensors(@PathVariable("application") String application) {
+		ServiceInstance instance = instanceRepository.get(application);
+		if (instance != null) {
+			String appId = instance.getServiceDefinitionId();
+			return admin.getApplicationSensors(appId);
+		}	
+		System.out.println(instanceRepository);
+		return Collections.emptyMap();
+	}
 
 }
