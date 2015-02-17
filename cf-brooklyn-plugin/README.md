@@ -89,6 +89,29 @@ catalog.  The service broker that is associated will need to be
 refreshed with `cf update-service-broker` and enabled with 
 `enable-service-access` for these new services to become available.
 
-To uninstall,
+Deleting catalog items
+----------------------
+
+    $ cf brooklyn delete-catalog <broker> <username> <password> <name> <version>
+    
+
+Listing Effectors
+-----------------
+
+    $ cf brooklyn effectors <broker> <username> <password> <service>
+    
+
+Invoking Effectors
+------------------
+
+    $ cf brooklyn invoke <broker> <username> <password> <service> <effector>
+    
+Viewing Sensors
+---------------
+
+    $ cf brooklyn sensors <broker> <username> <password> <service>
+
+Uninstall
+---------
 
     $ cf uninstall-plugin BrooklynPlugin
