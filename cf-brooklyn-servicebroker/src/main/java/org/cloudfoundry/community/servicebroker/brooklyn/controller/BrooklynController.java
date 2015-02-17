@@ -53,7 +53,7 @@ public class BrooklynController {
 			@PathVariable("effector") String effector,
 			@RequestBody Map<String, Object> params) {
 		
-		ServiceInstance instance = instanceRepository.get(application);
+		ServiceInstance instance = instanceRepository.findOne(application);//instanceRepository.get(application);
 		if (instance != null) {
 			String appId = instance.getServiceDefinitionId();
 			return admin.invokeEffector(appId, entity, effector, params);
@@ -64,7 +64,7 @@ public class BrooklynController {
 	
 	@RequestMapping(value = "/effectors/{application}", method = RequestMethod.GET)
 	public @ResponseBody Map<String, Object> effectors(@PathVariable("application") String application){
-		ServiceInstance instance = instanceRepository.get(application);
+		ServiceInstance instance = instanceRepository.findOne(application);//instanceRepository.get(application);
 		if (instance != null) {
 			String appId = instance.getServiceDefinitionId();
 			return admin.getApplicationEffectors(appId);
@@ -75,7 +75,7 @@ public class BrooklynController {
 	
 	@RequestMapping(value = "/sensors/{application}", method = RequestMethod.GET)
 	public @ResponseBody Map<String, Object> sensors(@PathVariable("application") String application) {
-		ServiceInstance instance = instanceRepository.get(application);
+		ServiceInstance instance = instanceRepository.findOne(application);//instanceRepository.get(application);
 		if (instance != null) {
 			String appId = instance.getServiceDefinitionId();
 			return admin.getApplicationSensors(appId);

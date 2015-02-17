@@ -12,6 +12,7 @@ import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceDefinition;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
+import org.cloudfoundry.community.servicebroker.model.fixture.ServiceInstanceFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,11 +37,14 @@ public class BrooklynServiceInstanceServiceTest {
 	private TaskSummary entity;
 	
 	private BrooklynServiceInstanceService service;
+	
+	@Mock
+	private BrooklynServiceInstanceRepository repository;
 
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		service = new BrooklynServiceInstanceService(admin, BrooklynServiceInstanceRepository.INSTANCE);
+		service = new BrooklynServiceInstanceService(admin, repository);
 	}
 	
 	@Test
@@ -58,33 +62,28 @@ public class BrooklynServiceInstanceServiceTest {
 	@Test(expected=ServiceInstanceExistsException.class)
 	public void serviceInstanceCreationFailsWithExistingInstance()  
 			throws ServiceInstanceExistsException, ServiceBrokerException {
-		when(admin.createApplication(any(String.class))).thenReturn(entity);		
-		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
-		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
+		when(repository.findOne(any(String.class))).thenReturn(ServiceInstanceFixture.getServiceInstance());		
+		service.createServiceInstance(
+				serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
 	}
 	
 	@Test
 	public void serviceInstanceRetrievedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException{
 		
-		when(admin.createApplication(any(String.class))).thenReturn(entity);
-		
-		assertNull(service.getServiceInstance(SVC_INST_ID));
-		service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
-		assertNotNull(service.getServiceInstance(SVC_INST_ID));
+		when(repository.findOne(any(String.class))).thenReturn(ServiceInstanceFixture.getServiceInstance());
+		String id = ServiceInstanceFixture.getServiceInstance().getId();
+		assertEquals(id, service.getServiceInstance(id).getId());
 	}
 	
 	@Test
 	public void serviceInstanceDeletedSuccessfully() 
 			throws ServiceInstanceExistsException, ServiceBrokerException {
 
-		when(admin.createApplication(any(String.class))).thenReturn(entity);
+		when(repository.findOne(any(String.class))).thenReturn(ServiceInstanceFixture.getServiceInstance());
+		String id = ServiceInstanceFixture.getServiceInstance().getId();
 		
-		ServiceInstance instance = service.createServiceInstance(serviceDefinition, SVC_INST_ID, "planId", "organizationGuid", "spaceGuid");
-		assertNotNull(service.getServiceInstance(SVC_INST_ID));
-		
-		service.deleteServiceInstance(SVC_INST_ID, instance.getId(), "planId");
-		assertNull(service.getServiceInstance(SVC_INST_ID));
+		assertNotNull(service.deleteServiceInstance(id, null, null));
 		
 	}
 }

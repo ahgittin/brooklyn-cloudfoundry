@@ -1,8 +1,5 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.service;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException;
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceDoesNotExistException;
@@ -71,13 +68,13 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 				planId, organizationGuid, spaceGuid,
 				null);
 		
-		repository.put(serviceInstanceId, instance);
+		repository.save(instance);
 		return instance;
 	}
 
 	@Override
 	public ServiceInstance getServiceInstance(String id) {
-		return repository.get(id);
+		return repository.findOne(id);
 	}
 
 	@Override
@@ -92,7 +89,7 @@ public class BrooklynServiceInstanceService implements ServiceInstanceService {
 			String planId) throws ServiceBrokerException {
 		ServiceInstance instance = getServiceInstance(id);
 		if (instance != null) {
-			repository.remove(id);
+			repository.delete(id);
 			admin.deleteApplication(instance.getServiceDefinitionId());
 		}
 		return instance;

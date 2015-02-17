@@ -14,6 +14,7 @@ import org.cloudfoundry.community.servicebroker.exception.ServiceBrokerException
 import org.cloudfoundry.community.servicebroker.exception.ServiceInstanceBindingExistsException;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstance;
 import org.cloudfoundry.community.servicebroker.model.ServiceInstanceBinding;
+import org.cloudfoundry.community.servicebroker.model.fixture.ServiceInstanceBindingFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,10 +36,13 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	
 	private BrooklynServiceInstanceBindingService bindingService;
 	
+	@Mock
+	private BrooklynServiceInstanceBindingRepository repository;
+	
 	@Before
 	public void setup() {
 		MockitoAnnotations.initMocks(this);
-		bindingService = new BrooklynServiceInstanceBindingService(admin, BrooklynServiceInstanceBindingRepository.INSTANCE);
+		bindingService = new BrooklynServiceInstanceBindingService(admin, repository);
 	}
 	
 	@Test
@@ -55,6 +59,9 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	@Test(expected=ServiceInstanceBindingExistsException.class)
 	public void serviceInstanceCreationFailsWithExistingInstance()  
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException {
+		
+		when(repository.findOne(any(String.class)))
+		.thenReturn(ServiceInstanceBindingFixture.getServiceInstanceBinding());	
 		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());		
 		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
 		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
@@ -64,24 +71,19 @@ private final static String SVC_INST_BIND_ID = "serviceInstanceBindingId";
 	public void serviceInstanceBindingRetrievedSuccessfully() 
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException{
 
-		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());
+		ServiceInstanceBinding binding = ServiceInstanceBindingFixture.getServiceInstanceBinding();
+		when(repository.findOne(any(String.class))).thenReturn(binding);
 		
-		assertNull(bindingService.getServiceInstanceBinding(SVC_INST_BIND_ID));		
-		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
-		assertNotNull(bindingService.getServiceInstanceBinding(SVC_INST_BIND_ID));
+		assertEquals(binding.getId(), bindingService.getServiceInstanceBinding(binding.getId()).getId());
 	}
 	
 	@Test
 	public void serviceInstanceBindingDeletedSuccessfully() 
 			throws ServiceBrokerException, ServiceInstanceBindingExistsException {
+		
+		ServiceInstanceBinding binding = ServiceInstanceBindingFixture.getServiceInstanceBinding();
+		when(repository.findOne(any(String.class))).thenReturn(binding);
 
-		when(admin.getApplicationSensors(any(String.class))).thenReturn(Collections.emptyMap());
-		
-		bindingService.createServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId", "appGuid");
-		assertNotNull(bindingService.getServiceInstanceBinding(SVC_INST_BIND_ID));
-		
-		bindingService.deleteServiceInstanceBinding(SVC_INST_BIND_ID, serviceInstance, "serviceId", "planId");
-		assertNull(bindingService.getServiceInstanceBinding(SVC_INST_BIND_ID));
-		
+		assertNotNull(bindingService.deleteServiceInstanceBinding(binding.getId(), null, null, null));
 	}
 }

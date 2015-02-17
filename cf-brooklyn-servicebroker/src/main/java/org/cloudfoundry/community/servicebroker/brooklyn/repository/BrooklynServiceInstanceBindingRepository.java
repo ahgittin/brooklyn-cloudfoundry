@@ -1,26 +1,8 @@
 package org.cloudfoundry.community.servicebroker.brooklyn.repository;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.cloudfoundry.community.servicebroker.model.ServiceInstanceBinding;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-public enum BrooklynServiceInstanceBindingRepository {
+public interface BrooklynServiceInstanceBindingRepository extends MongoRepository<ServiceInstanceBinding, String>{
 	
-	INSTANCE;
-
-	private Map<String, ServiceInstanceBinding> repository = new ConcurrentHashMap<String, ServiceInstanceBinding>();
-
-	public void put(String bindingId,
-			ServiceInstanceBinding serviceInstanceBinding) {
-		repository.put(bindingId, serviceInstanceBinding);
-	}
-
-	public void remove(String bindingId) {
-		repository.remove(bindingId);
-	}
-
-	public ServiceInstanceBinding get(String id) {
-		return repository.get(id);
-	}
 }

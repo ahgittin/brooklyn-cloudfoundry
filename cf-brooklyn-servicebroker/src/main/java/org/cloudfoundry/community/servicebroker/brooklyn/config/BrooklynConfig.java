@@ -11,6 +11,8 @@ public class BrooklynConfig {
 
 	private String uri;
 	private String port;
+	private String username;
+	private String password;
 	
 	public String getUri() {
 		return uri;
@@ -36,5 +38,21 @@ public class BrooklynConfig {
 			sb.append(s);
 		}
 		return sb.toString();
+	}
+
+	public String getPassword() {
+		return password;
+	}
+	
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+	
+	public void setUsername(String username) {
+		this.username = username;
 	}
 }

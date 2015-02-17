@@ -9,11 +9,8 @@ import java.util.Set;
 
 import javax.ws.rs.core.Response;
 
-import org.cloudfoundry.community.servicebroker.brooklyn.config.BrooklynConfig;
-import org.cloudfoundry.community.servicebroker.brooklyn.repository.BrooklynServiceInstanceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import brooklyn.rest.client.BrooklynApi;
 import brooklyn.rest.domain.CatalogItemSummary;
@@ -78,7 +75,7 @@ public class BrooklynRestAdmin {
 		for (brooklyn.rest.domain.SensorSummary sensorSummary : restApi.getSensorApi().list(application, entity)) {
 			String sensor = sensorSummary.getName();
 			if(sensorBlacklist.contains(sensor)) continue;
-			sensors.put(sensorSummary.getName(), restApi.getSensorApi().get(application, entity, sensor, false));
+			sensors.put(sensor, restApi.getSensorApi().get(application, entity, sensor, false));
 		}	
 		return sensors;
 	}

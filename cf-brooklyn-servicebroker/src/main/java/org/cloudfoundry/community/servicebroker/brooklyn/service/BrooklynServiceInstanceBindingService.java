@@ -37,9 +37,9 @@ public class BrooklynServiceInstanceBindingService implements
 					serviceInstanceBinding);
 		}
 		Map<String, Object> credentials = admin.getApplicationSensors(serviceInstance.getServiceDefinitionId());
-		serviceInstanceBinding = new ServiceInstanceBinding(bindingId, serviceInstance.getId(), credentials, null, appGuid);
-		repository.put(bindingId, serviceInstanceBinding);
-		return serviceInstanceBinding;
+		serviceInstanceBinding = new ServiceInstanceBinding(bindingId, serviceInstance.getId(), null, null, appGuid);
+		repository.save(serviceInstanceBinding);
+		return new ServiceInstanceBinding(bindingId, serviceInstance.getId(), credentials, null, appGuid);
 	}
 
 	@Override
@@ -50,13 +50,13 @@ public class BrooklynServiceInstanceBindingService implements
 		ServiceInstanceBinding serviceInstanceBinding = getServiceInstanceBinding(bindingId);
 		if (serviceInstanceBinding != null) {
 			// do delete stuff
-			repository.remove(bindingId);
+			repository.delete(bindingId);
 		}
 		return serviceInstanceBinding;
 	}
 
 	protected ServiceInstanceBinding getServiceInstanceBinding(String id) {
-		return repository.get(id);
+		return repository.findOne(id);
 	}
 
 }
