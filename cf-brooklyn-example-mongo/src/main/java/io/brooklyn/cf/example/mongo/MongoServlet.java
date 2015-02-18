@@ -93,7 +93,7 @@ public class MongoServlet extends HttpServlet {
 	}
 
 	private JsonElement getMongoDb(JsonElement parse) {
-		return getField(parse, "MongoDB-AWS");
+		return getField(parse, "MongoDB");
 	}
 
 	private JsonElement getJsonElementFromValue(
